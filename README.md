@@ -1,4 +1,4 @@
-To determine how you spend your time, TagTime literally randomly samples you. At random times it pops up and asks what you're doing right at that moment. You answer with tags.
+To determine how you spend your time, TagTime randomly samples you. At random times it pops up and asks what you're doing right at that moment. You answer with tags.
 
 For more on the idea behind this project, see  [messymatters.com/tagtime](http://messymatters.com/tagtime).
 
@@ -7,11 +7,10 @@ For more on the idea behind this project, see  [messymatters.com/tagtime](http:/
 This implementation is not entirely ready for distribution, but you should still be able to run it.
 
 0. Clone the repository on Github.
-1. Compile the project, specifying tagtime.Main as the main class and specifying the commons-codec and quartz-all jar files as libraries. (Sorry; I can't really provide detailed instructions here, beyond "look in your IDE's build settings.")
+1. Compile the project, specifying tagtime.Main as the main class and specifying the commons-codec and quartz-all jar files as libraries. (Sorry; I can't tell you how to do this from the command line, but I do suggest looking in your IDE's build settings.)
 2. Run the app, preferably with your Beeminder username as an argument. (Again, this should be in your IDE's settings, and I can't really help if not.)
 3. If you want to change your settings, exit the app and find your settings file in the newly-created data folder. Update your settings (see SettingType.java for documentation), and start the app again when you're done.
-4. Answer the pings!
-   (Always answer with what it caught you at right at that moment.)
+4. Answer the pings! (Always answer with what it caught you at right at that moment.)
 
 # Credits:
 
