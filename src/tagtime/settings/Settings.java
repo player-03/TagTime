@@ -108,7 +108,8 @@ public class Settings {
 	}
 	
 	/**
-	 * Reads lines from the given settings file.
+	 * Reads lines from the given settings file and determines the
+	 * settings accordingly.
 	 */
 	private void readInSettings(BufferedReader in) {
 		String currentLine;
@@ -155,7 +156,8 @@ public class Settings {
 				
 				//if the data starts with a bracket, strip the bracket
 				//and set parsingCollection to true
-				if(currentData.charAt(0) == '[') {
+				if(currentData.length() != 0
+							&& currentData.charAt(0) == '[') {
 					parsingCollection = true;
 					currentData.deleteCharAt(0);
 				}
@@ -211,10 +213,22 @@ public class Settings {
 	 * @return The parsed object, or null if type wasn't recognized.
 	 */
 	private Object extractData(SettingType type, String data) {
-		//most data is stored as 
+		//most settings are numbers, strings, or booleans
 		if(type.valueClass == int.class || type.valueClass == Integer.class) {
 			try {
 				return Integer.parseInt(data);
+			} catch(NumberFormatException e) {
+				return 0;
+			}
+		} else if(type.valueClass == double.class || type.valueClass == Double.class) {
+			try {
+				return Double.parseDouble(data);
+			} catch(NumberFormatException e) {
+				return 0;
+			}
+		} else if(type.valueClass == float.class || type.valueClass == Float.class) {
+			try {
+				return Float.parseFloat(data);
 			} catch(NumberFormatException e) {
 				return 0;
 			}
@@ -224,9 +238,16 @@ public class Settings {
 			return data.equals("true");
 		}
 		
+		//more advanced settings have to be handled directly; there's no
+		//better way to specify what the generics should be (at least,
+		//none that I can think of)
 		switch(type) {
 			case BEEMINDER_GRAPHS:
 				assert type.valueClass == HashSet.class;
+				
+				if(data.length() == 0) {
+					return new HashSet<String>();
+				}
 				
 				return new HashSet<String>(Arrays.asList(data.split(",\\s*")));
 			case CACHED_TAGS:
@@ -238,7 +259,7 @@ public class Settings {
 				
 				for(String s : dataList) {
 					delim = s.indexOf(':');
-					if(delim > 0 && delim < s.length()) {
+					if(delim > 0 && delim < s.length() - 1) {
 						try {
 							set.add(new TagCount(s.substring(0, delim),
 										Integer.parseInt(s.substring(delim + 1))));

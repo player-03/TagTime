@@ -133,9 +133,7 @@ public class Main {
 			ActionListener settingsListener = new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					getSettings().flush();
-					System.out.println("Settings manager not implemented; sorry. " +
-								"Any changes have been saved, though.");
+					System.out.println("Settings manager not implemented; sorry.");
 				}
 			};
 			MenuItem settingsMenuItem = new MenuItem("Settings", new MenuShortcut(KeyEvent.VK_S));
