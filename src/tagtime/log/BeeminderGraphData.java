@@ -153,9 +153,9 @@ public class BeeminderGraphData {
 		//enter the tags in the correct lists
 		for(String tag : tags) {
 			if(tag.charAt(0) == '-') {
-				rejectedTags.add(tag.substring(1));
+				rejectedTags.add(tag.substring(1).toLowerCase());
 			} else {
-				acceptedTags.add(tag);
+				acceptedTags.add(tag.toLowerCase());
 			}
 		}
 		
@@ -294,7 +294,7 @@ public class BeeminderGraphData {
 			
 			//iterate through all the tags, checking for matches
 			for(int i = lineData.groupCount(); i >= 2; i--) {
-				tag = lineData.group(i);
+				tag = lineData.group(i).toLowerCase();
 				
 				//check if this tag is accepted, unless a match has
 				//already been found, in which case all that needs to be
