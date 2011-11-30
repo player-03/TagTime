@@ -1,6 +1,14 @@
-These lists are most likely incomplete, so please feel free to add
-yourself under any category you contributed to.
+To determine how you spend your time, TagTime literally randomly samples
+you. At random times it pops up and asks what you're doing right at that
+moment. You answer with tags.
 
+For more on the idea behind this project, see messymatters.com/tagtime.
+
+More information on this particular implementation of the project
+coming later.
+
+
+Credits:
 TagTime conceived of, designed, and implemented by Dreeves and Bethany
 Soule. See http://messymatters.com/tagtime for details. This Java
 implementation was created by Joseph Cloutier (player_03).
