@@ -351,6 +351,10 @@ public class BeeminderGraphData {
 		}
 		data.append("&datapoints_text=");
 		for(Entry<String, Long> dataToSubmit : timeToSubmit.entrySet()) {
+			if(dataToSubmit.getValue() <= 0) {
+				continue;
+			}
+			
 			try {
 				data.append(URLEncoder.encode((firstEntry ? "" : "\n") +
 							dataToSubmit.getKey() + " " +
@@ -371,7 +375,7 @@ public class BeeminderGraphData {
 			//apply the connection settings
 			connection.setDoOutput(true);
 			connection.setRequestMethod("POST");
-			connection.setRequestProperty("Content-type", "text/xml; charset=UTF-8");
+			connection.setRequestProperty("Content-Length", Integer.toString(data.length()));
 			
 			//post the data
 			OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
@@ -379,13 +383,17 @@ public class BeeminderGraphData {
 			out.flush();
 			
 			out.close();
+			
+			//For debugging:
+			System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
+			System.out.println("Response: " + connection.getResponseCode() +
+						" " + connection.getResponseMessage());
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Unable to submit your data to Beeminder " +
 						"graph " + graphName + ". Please try again later.");
 			return;
 		}
-		System.out.println(graphURL.toString() + "?" + data.toString());
 		
 		//record the submitted data
 		try {
