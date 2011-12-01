@@ -30,7 +30,7 @@ public class TagCount implements Comparable<TagCount> {
 	public TagCount(String tag, int count) {
 		assert tag != null;
 		
-		this.tag = tag;
+		this.tag = tag.toLowerCase();
 		this.count = count;
 	}
 	

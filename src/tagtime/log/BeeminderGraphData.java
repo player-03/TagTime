@@ -265,12 +265,9 @@ public class BeeminderGraphData {
 			//record the ping time
 			currentPingTime = Long.parseLong(lineData.group(1));
 			
-			//if this data point represents TagTime starting up, use it
-			//to mark the time, but don't submit it as data
-			if(previousPingTime < 0 ||
-						line.substring(lineData.end(1) + 1,
-									lineData.end(lineData.groupCount()) - 1)
-									.equals(Main.START_MESSAGE)) {
+			//if there was no prior ping, use this one to mark the time,
+			//but don't submit it as data
+			if(previousPingTime < 0) {
 				previousPingTime = currentPingTime;
 				continue;
 			}

@@ -26,7 +26,8 @@ import org.quartz.SimpleTrigger;
 import tagtime.random.RandomSequenceGenerator;
 
 /**
- * Derived from <code>{@link SimpleTrigger}</code>.
+ * A trigger that fires at randomized times, with a given average gap
+ * between firing.
  * @see RandomizedTriggerImpl
  */
 public interface RandomizedTrigger extends SimpleTrigger {
@@ -40,11 +41,45 @@ public interface RandomizedTrigger extends SimpleTrigger {
 	//1319500800000 is October 25, 2011 at midnight
 	public static final long CALENDAR_START = 1319500800000L;
 	
+	/**
+	 * Sets the random number generator. Caution: changing the random
+	 * number generator after the trigger has been started will not
+	 * update the next scheduled fire time, which will probably result in
+	 * temporary erratic behavior.
+	 */
 	public void setRNG(RandomSequenceGenerator rng);
 	
+	/**
+	 * Returns the key used by the random number generator.
+	 */
 	public String getRNGKey();
 	
+	/**
+	 * <p>
+	 * Returns the first time at which the <code>Trigger</code> will
+	 * fire, after the given time. If the trigger will not fire after the
+	 * given time and <code>alwaysReturn</code> is false,
+	 * <code>null</code> will be returned.
+	 * </p>
+	 */
+	Date getFireTimeAfter(Date target, boolean alwaysReturn);
+	
+	/**
+	 * <p>
+	 * Returns the last time at which the <code>Trigger</code> will fire,
+	 * before the given time. If the trigger will not fire before the
+	 * given time, <code>null</code> will be returned.
+	 * </p>
+	 */
 	Date getFireTimeBefore(Date target);
 	
+	/**
+	 * <p>
+	 * Returns the last time at which the <code>Trigger</code> will fire,
+	 * before the given time. If the trigger will not fire before the
+	 * given time and <code>alwaysReturn</code> is false,
+	 * <code>null</code> will be returned.
+	 * </p>
+	 */
 	Date getFireTimeBefore(Date target, boolean alwaysReturn);
 }

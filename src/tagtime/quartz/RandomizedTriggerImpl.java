@@ -29,7 +29,7 @@ import org.quartz.impl.triggers.SimpleTriggerImpl;
 import tagtime.random.RandomSequenceGenerator;
 
 /**
- * Derived from <code>{@link SimpleTriggerImpl}</code>.
+ * An implementation of {@link RandomizedTrigger}.
  */
 public class RandomizedTriggerImpl extends SimpleTriggerImpl
 			implements RandomizedTrigger {
@@ -114,10 +114,7 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	}
 	
 	/**
-	 * Sets the random number generator. Caution: changing the random
-	 * number generator after the trigger has been started will not
-	 * update the next scheduled fire time, which may result in temporary
-	 * erratic behavior.
+	 * {@inheritDoc}
 	 */
 	@Override
 	public void setRNG(RandomSequenceGenerator rng) {
@@ -126,24 +123,23 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	}
 	
 	/**
-	 * Returns the key used by the random number generator.
+	 * {@inheritDoc}
 	 */
 	@Override
 	public String getRNGKey() {
 		return rng.getKey();
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void triggered(Calendar calendar) {
 		super.triggered(calendar);
 	}
 	
 	/**
-	 * <p>
-	 * Returns the next time at which the <code>RandomizedTrigger</code>
-	 * will fire, after the given time. If the trigger will not fire
-	 * after the given time, <code>null</code> will be returned.
-	 * </p>
+	 * {@inheritDoc}
 	 * <p>
 	 * Additionally, if this trigger has been triggered the specified
 	 * number of times, this function will return null, regardless of
@@ -187,6 +183,20 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	}
 	
 	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Date getFireTimeAfter(Date target, boolean alwaysReturn) {
+		if(!alwaysReturn) {
+			return getFireTimeAfter(target);
+		}
+		
+		findFireTimeAfter(target.getTime());
+		
+		return new Date(cachedTimeOfExecution);
+	}
+	
+	/**
 	 * Updates the cached values to point to the first fire time after
 	 * the given time. Unlike <code>getFireTimeAfter()</code>, this will
 	 * always update the values.
@@ -209,11 +219,7 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	}
 	
 	/**
-	 * <p>
-	 * Returns the last time at which the <code>RandomizedTrigger</code>
-	 * will fire, before the given time. If the trigger will not fire
-	 * before the given time, <code>null</code> will be returned.
-	 * </p>
+	 * {@inheritDoc}
 	 */
 	@Override
 	public Date getFireTimeBefore(Date target) {
@@ -227,17 +233,12 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	}
 	
 	/**
-	 * <p>
-	 * Returns the last time at which the <code>RandomizedTrigger</code>
-	 * will fire, before the given time. If the trigger will not fire
-	 * before the given time and <code>alwaysReturn</code> is false,
-	 * <code>null</code> will be returned.
-	 * </p>
+	 * {@inheritDoc}
 	 */
 	@Override
 	public Date getFireTimeBefore(Date target, boolean alwaysReturn) {
-		if(target.getTime() < getStartTime().getTime()) {
-			return null;
+		if(!alwaysReturn) {
+			return getFireTimeBefore(target);
 		}
 		
 		findFireTimeBefore(target.getTime());

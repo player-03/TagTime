@@ -53,8 +53,6 @@ import tagtime.settings.Settings;
 import tagtime.util.HMSTimeFormatter;
 
 public class Main {
-	public static final String START_MESSAGE = "TagTime started RETRO";
-	
 	private static File dataDirectory;
 	private static Settings settings;
 	
@@ -76,9 +74,8 @@ public class Main {
 			username = "default_user";
 		}
 		
+		//create the data directory, if needed
 		dataDirectory = new File("./data");
-		
-		//this does nothing if the directory is already there
 		dataDirectory.mkdir();
 		
 		try {
@@ -89,7 +86,7 @@ public class Main {
 			return;
 		}
 		
-		Log.getInstance().log(System.currentTimeMillis(), START_MESSAGE);
+		Date now = new Date();
 		api = new BeeminderAPI(settings);
 		
 		String rngKey = (String) settings.getValue(SettingType.RNG_KEY);
@@ -97,18 +94,19 @@ public class Main {
 		try {
 			//define a job
 			jobDetail = JobBuilder.newJob(PingJob.class)
-							.withIdentity("tagJob1", "group1")
-							.build();
+									.withIdentity("tagJob1", "group1")
+									.build();
 			
 			//set up the trigger and schedule for the job
-			RandomizedScheduleBuilder scheduleBuilder = RandomizedScheduleBuilder
-						.repeatMinutelyForever((Integer)
-									settings.getValue(SettingType.AVERAGE_GAP))
-						.withRNGKey(rngKey);
+			RandomizedScheduleBuilder scheduleBuilder =
+						RandomizedScheduleBuilder
+													.repeatMinutelyForever(	(Integer)
+																			settings.getValue(SettingType.AVERAGE_GAP))
+													.withRNGKey(rngKey);
 			trigger = (RandomizedTrigger) TriggerBuilder.newTrigger()
-						.withIdentity("trigger1", "group1")
-						.withSchedule(scheduleBuilder)
-						.build();
+														.withIdentity("trigger1", "group1")
+														.withSchedule(scheduleBuilder)
+														.build();
 			
 			//start the scheduler
 			scheduler = StdSchedulerFactory.getDefaultScheduler();
@@ -181,7 +179,17 @@ public class Main {
 			//TODO: Implement an alternative to the system tray.
 		}
 		
-		Date now = new Date();
+		//record all the pings that were missed
+		Log log = Log.getInstance();
+		long lastPing = log.getLastTimestamp();
+		if(lastPing != -1) {
+			Date ping = new Date(lastPing * 1000);
+			for(ping = trigger.getFireTimeAfter(ping, true); ping.compareTo(now) < 0; ping =
+						trigger.getFireTimeAfter(ping, true)) {
+				log.log(ping.getTime(), "afk off RETRO");
+			}
+		}
+		
 		long timeDiff = (now.getTime() - trigger.getFireTimeBefore(now, true).getTime()) / 1000;
 		assert timeDiff > 0;
 		
