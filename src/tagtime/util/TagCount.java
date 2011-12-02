@@ -25,13 +25,16 @@ package tagtime.util;
  */
 public class TagCount implements Comparable<TagCount> {
 	private final String tag;
+	private final String lowercaseTag;
 	private int count;
 	
 	public TagCount(String tag, int count) {
 		assert tag != null;
 		
-		this.tag = tag.toLowerCase();
+		this.tag = tag;
 		this.count = count;
+		
+		lowercaseTag = tag.toLowerCase();
 	}
 	
 	public String getTag() {
@@ -53,7 +56,7 @@ public class TagCount implements Comparable<TagCount> {
 	
 	@Override
 	public int compareTo(TagCount other) {
-		if(tag.equals(other.tag)) {
+		if(lowercaseTag.equals(other.lowercaseTag)) {
 			return 0;
 		}
 		
@@ -68,11 +71,11 @@ public class TagCount implements Comparable<TagCount> {
 	@Override
 	public boolean equals(Object other) {
 		return other instanceof TagCount
-					&& tag.equals(((TagCount) other).tag);
+					&& lowercaseTag.equals(((TagCount) other).lowercaseTag);
 	}
 	
 	@Override
 	public int hashCode() {
-		return tag.hashCode();
+		return lowercaseTag.hashCode();
 	}
 }

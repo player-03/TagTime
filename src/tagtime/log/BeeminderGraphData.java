@@ -60,7 +60,7 @@ public class BeeminderGraphData {
 							//any characters but commas, ]s, whitespace,
 							//and - signs at the start
 							//the tags may be followed by multiple spaces
-							"([^\\]\\s,\\-][^\\]\\s,]+ )+ *" +
+							"(?:([^\\]\\s,\\-][^\\]\\s,]+) )+ *" +
 							//human-readable timestamp, in square
 							//brackets, at the very end of the line
 							//(this does not need to be captured)
@@ -123,7 +123,7 @@ public class BeeminderGraphData {
 		//the URL will be determined based on whether the data is to be
 		//overwritten
 		boolean overwriteAllData = (Boolean) Main.getSettings()
-					.getValue(SettingType.OVERWRITE_ALL_DATA);
+													.getValue(SettingType.OVERWRITE_ALL_DATA);
 		
 		//find the graph url
 		int graphDelim = dataEntry.indexOf('|');
@@ -237,7 +237,9 @@ public class BeeminderGraphData {
 		long previousPingTime = -1;
 		long currentPingTime;
 		
+		boolean previousPingToBeSubmitted = false;
 		boolean pingAccepted;
+		
 		String tag;
 		String dateString;
 		
@@ -265,11 +267,44 @@ public class BeeminderGraphData {
 			//record the ping time
 			currentPingTime = Long.parseLong(lineData.group(1));
 			
-			//if there was no prior ping, use this one to mark the time,
-			//but don't submit it as data
-			if(previousPingTime < 0) {
-				previousPingTime = currentPingTime;
-				continue;
+			//if the previous ping was accepted and needs to be submitted,
+			//submit it now
+			if(previousPingToBeSubmitted) {
+				//record the ping as having been submitted
+				//(normally this will add the ping at the end, but if
+				//the user has modified the settings for this list,
+				//pingIndex may be in the middle)
+				pingsSubmitted.add(pingIndex, previousPingTime);
+				
+				//the pings are stored in seconds, but the Date class
+				//uses milliseconds
+				dateString = dateFormat.format(new Date(previousPingTime * 1000));
+				
+				//add the time elapsed to the running total for the day
+				if(!timeToSubmit.containsKey(dateString)) {
+					//the time for the previous ping is the length of time
+					//after that ping and before this one; previously,
+					//the amount of time _before_ a ping was used, but
+					//this opened up an exploit:
+					
+					//if a user went an hour without seeing any pings,
+					//they could start working until the next ping, and
+					//they would get credit for an hour of work they
+					//didn't actually do
+					
+					//this way, the user has no information about the
+					//next ping, so they can't game the system; sure, they
+					//can go back and edit the log file if enough time
+					//passes, but they could do that anyway
+					
+					//(note that the reason we don't just use the average
+					//gap is that the average gap have changed)
+					timeToSubmit.put(dateString, currentPingTime - previousPingTime);
+				} else {
+					//note that these times are in seconds
+					timeToSubmit.put(dateString, timeToSubmit.get(dateString)
+								+ (currentPingTime - previousPingTime));
+				}
 			}
 			
 			//find this ping in pingsSubmitted
@@ -282,6 +317,7 @@ public class BeeminderGraphData {
 			if(pingIndex < pingsSubmitted.size() &&
 						pingsSubmitted.get(pingIndex) == currentPingTime) {
 				previousPingTime = currentPingTime;
+				previousPingToBeSubmitted = false;
 				pingIndex++;
 				continue;
 			}
@@ -311,28 +347,7 @@ public class BeeminderGraphData {
 				}
 			}
 			
-			//if the ping matches and hasn't been submitted 
-			if(pingAccepted) {
-				//record the ping as having been submitted
-				//(normally this will add the ping at the end, but if
-				//the user has modified the settings for this list,
-				//pingIndex may be in the middle)
-				pingsSubmitted.add(pingIndex, currentPingTime);
-				
-				//the pings are stored in seconds, but the Date class
-				//uses milliseconds
-				dateString = dateFormat.format(new Date(currentPingTime * 1000));
-				
-				//add this current ping to the running total for the day
-				if(!timeToSubmit.containsKey(dateString)) {
-					//note that these times are in seconds
-					timeToSubmit.put(dateString, currentPingTime - previousPingTime);
-				} else {
-					timeToSubmit.put(dateString, timeToSubmit.get(dateString)
-								+ (currentPingTime - previousPingTime));
-				}
-			}
-			
+			previousPingToBeSubmitted = pingAccepted;
 			previousPingTime = currentPingTime;
 		}
 		
@@ -356,7 +371,7 @@ public class BeeminderGraphData {
 				data.append(URLEncoder.encode((firstEntry ? "" : "\n") +
 							dataToSubmit.getKey() + " " +
 							hourFormatter.format((double) dataToSubmit.getValue() / 3600),
-							"UTF-8"));
+												"UTF-8"));
 				firstEntry = false;
 			} catch(UnsupportedEncodingException e) {
 				e.printStackTrace();
@@ -382,9 +397,9 @@ public class BeeminderGraphData {
 			out.close();
 			
 			//For debugging:
-			//System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
-			//System.out.println("Response: " + connection.getResponseCode() +
-			//			" " + connection.getResponseMessage());
+			System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
+			System.out.println("Response: " + connection.getResponseCode() +
+						" " + connection.getResponseMessage());
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Unable to submit your data to Beeminder " +

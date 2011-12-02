@@ -183,7 +183,8 @@ public class Main {
 		Log log = Log.getInstance();
 		long lastPing = log.getLastTimestamp();
 		if(lastPing != -1) {
-			Date ping = new Date(lastPing * 1000);
+			Date ping = new Date((lastPing + 1) * 1000);
+			
 			for(ping = trigger.getFireTimeAfter(ping, true); ping.compareTo(now) < 0; ping =
 						trigger.getFireTimeAfter(ping, true)) {
 				log.log(ping.getTime(), "afk off RETRO");

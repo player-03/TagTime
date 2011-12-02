@@ -294,10 +294,11 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	 */
 	@Override
 	public ScheduleBuilder<SimpleTrigger> getScheduleBuilder() {
-		RandomizedScheduleBuilder sb = RandomizedScheduleBuilder.randomizedSchedule()
-					.withIntervalInMilliseconds(getRepeatInterval())
-					.withRepeatCount(getRepeatCount())
-					.withRNGKey(getRNGKey());
+		RandomizedScheduleBuilder sb =
+					RandomizedScheduleBuilder.randomizedSchedule()
+												.withIntervalInMilliseconds(getRepeatInterval())
+												.withRepeatCount(getRepeatCount())
+												.withRNGKey(getRNGKey());
 		
 		switch(getMisfireInstruction()) {
 			case MISFIRE_INSTRUCTION_FIRE_NOW:
@@ -331,6 +332,10 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 		if(randomValue < 0.00000001) {
 			randomValue = 0.00000001;
 		}
+		
+		//TODO: (Possibly) implement a lower bound of 1 second, because
+		//the log file stores values in seconds and therefore can't
+		//disambiguate other values
 		
 		return (long) (getRepeatInterval() * -1 * Math.log(randomValue));
 	}
