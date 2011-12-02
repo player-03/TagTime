@@ -397,9 +397,9 @@ public class BeeminderGraphData {
 			out.close();
 			
 			//For debugging:
-			System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
-			System.out.println("Response: " + connection.getResponseCode() +
-						" " + connection.getResponseMessage());
+			//System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
+			//System.out.println("Response: " + connection.getResponseCode() +
+			//			" " + connection.getResponseMessage());
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Unable to submit your data to Beeminder " +

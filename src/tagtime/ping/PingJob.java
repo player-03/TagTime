@@ -26,10 +26,8 @@ import java.util.TreeSet;
 
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 
 import tagtime.Main;
-import tagtime.log.Log;
 import tagtime.settings.SettingType;
 import tagtime.util.HMSTimeFormatter;
 import tagtime.util.TagCount;
@@ -53,9 +51,12 @@ public class PingJob implements Job {
 	}
 	
 	@Override
-	public void execute(JobExecutionContext context)
-						throws JobExecutionException {
-		timeExecuted = context.getFireTime().getTime();
+	public void execute(JobExecutionContext context) {
+		//if any pings were missed in the meantime, log them as
+		//"afk RETRO" (the default message)
+		Main.getLog().logMissedPings(null);
+		
+		timeExecuted = context.getScheduledFireTime().getTime();
 		
 		if(context.getPreviousFireTime() != null) {
 			timeSincePreviousPing = timeExecuted - context.getPreviousFireTime().getTime();
@@ -87,9 +88,10 @@ public class PingJob implements Job {
 		if(!dataLogged) {
 			dataLogged = true;
 			
-			Log.getInstance().log(timeExecuted, tags);
+			Main.getLog().log(timeExecuted, tags);
 			Main.getSettings().incrementCounts(SettingType.CACHED_TAGS,
-						new LinkedList<String>(Arrays.asList(tags.split(" "))));
+												new LinkedList<String>(
+															Arrays.asList(tags.split(" "))));
 		}
 	}
 	
@@ -101,7 +103,7 @@ public class PingJob implements Job {
 		if(!dataLogged) {
 			dataLogged = true;
 			
-			Log.getInstance().log(timeExecuted, "afk "
+			Main.getLog().log(timeExecuted, "afk "
 						+ (computerOff ? "off " : "") + "RETRO");
 		}
 	}

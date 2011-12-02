@@ -55,6 +55,7 @@ import tagtime.util.HMSTimeFormatter;
 public class Main {
 	private static File dataDirectory;
 	private static Settings settings;
+	private static Log log;
 	
 	public static Image iconImage;
 	private static TrayIcon trayIcon;
@@ -78,12 +79,21 @@ public class Main {
 		dataDirectory = new File("./data");
 		dataDirectory.mkdir();
 		
+		//create the settings file
 		try {
 			settings = Settings.getInstance(username);
 		} catch(IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
 			return;
+		}
+		
+		//create the log file
+		try {
+			log = new Log();
+		} catch(IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
 		}
 		
 		Date now = new Date();
@@ -179,17 +189,8 @@ public class Main {
 			//TODO: Implement an alternative to the system tray.
 		}
 		
-		//record all the pings that were missed
-		Log log = Log.getInstance();
-		long lastPing = log.getLastTimestamp();
-		if(lastPing != -1) {
-			Date ping = new Date((lastPing + 1) * 1000);
-			
-			for(ping = trigger.getFireTimeAfter(ping, true); ping.compareTo(now) < 0; ping =
-						trigger.getFireTimeAfter(ping, true)) {
-				log.log(ping.getTime(), "afk off RETRO");
-			}
-		}
+		//record all the pings that were missed while TagTime wasn't running
+		log.logMissedPings("off");
 		
 		long timeDiff = (now.getTime() - trigger.getFireTimeBefore(now, true).getTime()) / 1000;
 		assert timeDiff > 0;
@@ -249,5 +250,16 @@ public class Main {
 	 */
 	public static BeeminderAPI getAPI() {
 		return api;
+	}
+	
+	/**
+	 * @return The trigger object that determines the ping schedule.
+	 */
+	public static RandomizedTrigger getTrigger() {
+		return trigger;
+	}
+	
+	public static Log getLog() {
+		return log;
 	}
 }

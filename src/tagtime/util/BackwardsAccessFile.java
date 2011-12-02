@@ -7,8 +7,7 @@ import java.io.RandomAccessFile;
 
 /**
  * An extension of {@link RandomAccessFile} with methods for finding the
- * last instance of certain types of data. (Currently only contains one
- * such method.)
+ * last instance of certain types of data.
  */
 public class BackwardsAccessFile extends RandomAccessFile {
 	public BackwardsAccessFile(String name, String mode) throws FileNotFoundException {
@@ -63,5 +62,22 @@ public class BackwardsAccessFile extends RandomAccessFile {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Returns the final line of the file containing at least one of the
+	 * given characters.
+	 * @param requiredCharacters A set of characters to look for before
+	 *            returning - at least one of these must be found on a
+	 *            line for that line to be considered valid. If this is
+	 *            null or empty, the function will return the final line
+	 *            in the file (most likely an empty line).
+	 * @return The line that was found.
+	 * @throws IOException if an I/O error occurs.
+	 */
+	public String readLastLine(String requiredCharacters) throws IOException {
+		seekLastLine(requiredCharacters);
+		
+		return readLine();
 	}
 }

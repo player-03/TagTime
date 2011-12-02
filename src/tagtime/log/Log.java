@@ -22,8 +22,10 @@ package tagtime.log;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.util.Date;
 
 import tagtime.Main;
+import tagtime.quartz.RandomizedTrigger;
 import tagtime.util.BackwardsAccessFile;
 
 /**
@@ -38,23 +40,9 @@ public class Log {
 	 */
 	public static final int TIMESTAMP_LENGTH = 10;
 	
-	private static Log instance;
 	private final BackwardsAccessFile logFile;
 	
-	public static Log getInstance() {
-		if(instance == null) {
-			try {
-				instance = new Log();
-			} catch(IOException e) {
-				e.printStackTrace();
-				instance = null;
-			}
-		}
-		
-		return instance;
-	}
-	
-	private Log() throws IOException {
+	public Log() throws IOException {
 		File filePath = new File(Main.getDataDirectory().getPath() + "/" +
 					Main.getSettings().username + ".log");
 		
@@ -107,14 +95,45 @@ public class Log {
 	 */
 	public long getLastTimestamp() {
 		try {
-			//find the final line with a digit on it
-			logFile.seekLastLine("0123456789");
+			//get the final line with a digit on it
+			String timestamp = logFile.readLastLine("0123456789");
 			
-			String timestamp = logFile.readLine();
 			timestamp = timestamp.substring(0, timestamp.indexOf(' '));
 			return Long.parseLong(timestamp);
 		} catch(IOException e) {}
 		
 		return -1;
+	}
+	
+	/**
+	 * Logs all pings that were skipped since the latest entry in the log
+	 * file, marking them as "afk RETRO", optionally with more tags.
+	 * @param extraTags Additional tags to add between "afk" and "RETRO".
+	 *            This string does not need to start or end with a space.
+	 */
+	public void logMissedPings(String extraTags) {
+		//determine the string to mark missed pings with
+		String tags = "afk ";
+		
+		if(extraTags != null && !extraTags.equals("")) {
+			tags += extraTags + " ";
+		}
+		
+		tags += "RETRO";
+		
+		RandomizedTrigger trigger = Main.getTrigger();
+		Date now = new Date();
+		long lastPing = getLastTimestamp();
+		
+		if(lastPing != -1) {
+			//lastPing was rounded down when converted to seconds, so if
+			//we don't add 1, it will most likely (999/1000) repeat a ping
+			Date ping = new Date((lastPing + 1) * 1000);
+			
+			for(ping = trigger.getFireTimeAfter(ping, true); ping.compareTo(now) < 0; ping =
+						trigger.getFireTimeAfter(ping, true)) {
+				log(ping.getTime(), tags);
+			}
+		}
 	}
 }
