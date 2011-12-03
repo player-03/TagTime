@@ -4,7 +4,7 @@ For more on the idea behind this project, see  [messymatters.com/tagtime](http:/
 
 # Usage:
 
-This implementation is not entirely ready for distribution, but you should still be able to run it.
+This implementation is not packaged for distribution, but you should still be able to run it.
 
 0. Clone the repository on Github.
 1. Compile the project, specifying tagtime.Main as the main class and specifying the jar files as libraries. (Sorry; I can't tell you how to do this from the command line, but I do suggest looking in your IDE's build settings.)
