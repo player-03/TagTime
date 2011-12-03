@@ -188,7 +188,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		}
 		
 		//this will do nothing if the data was submitted normally
-		ownerJob.submitAFK(false);
+		ownerJob.submitCanceled();
 		
 		super.dispose();
 	}

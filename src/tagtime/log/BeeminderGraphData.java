@@ -51,20 +51,19 @@ import tagtime.settings.SettingType;
  */
 public class BeeminderGraphData {
 	/**
-	 * A regular expression for parsing each line of the log file.
+	 * A regular expression for the first pass of parsing a line: getting
+	 * the timestamp at the start and stripping the timestamp at the end.
 	 */
 	private static final Pattern lineParser =
-				//          //timestamp, followed by one space
-				Pattern.compile("^(\\d+) " +
-							//tags, separated by spaces and consisting of
-							//any characters but commas, ]s, whitespace,
-							//and - signs at the start
-							//the tags may be followed by multiple spaces
-							"(?:([^\\]\\s,\\-][^\\]\\s,]+) )+ *" +
-							//human-readable timestamp, in square
-							//brackets, at the very end of the line
-							//(this does not need to be captured)
-							"\\[[a-zA-Z0-9 :,\\.]+\\]$");
+				Pattern.compile("^(\\d+) (.+)\\[[a-zA-Z0-9 :,\\.]+\\]$");
+	
+	/**
+	 * A regular expression for finding individual tags. Tags are
+	 * separated by spaces and may consist of any characters but commas,
+	 * ]s, whitespace, and - signs at the start.
+	 */
+	private static final Pattern tagParser =
+				Pattern.compile("[^\\]\\s,\\-][^\\]\\s,]+");
 	
 	/**
 	 * Submit time spent as hours, rounded to two decimal places.
@@ -261,8 +260,8 @@ public class BeeminderGraphData {
 			}
 			
 			//once the match succeeds, group 0 will be the entire line,
-			//group 1 will be the timestamp, and groups 2 through
-			//groupCount() (inclusive) will be tags
+			//group 1 will be the timestamp, and group 2 will contain all
+			//the tags (plus a bunch of whitespace at the end)
 			
 			//record the ping time
 			currentPingTime = Long.parseLong(lineData.group(1));
@@ -326,8 +325,10 @@ public class BeeminderGraphData {
 			pingAccepted = acceptedTags.size() == 0;
 			
 			//iterate through all the tags, checking for matches
-			for(int i = lineData.groupCount(); i >= 2; i--) {
-				tag = lineData.group(i).toLowerCase();
+			String tags = lineData.group(2);
+			Matcher tagData = tagParser.matcher(tags);
+			while(tagData.find()) {
+				tag = tagData.group().toLowerCase();
 				
 				//check if this tag is accepted, unless a match has
 				//already been found, in which case all that needs to be
@@ -397,9 +398,9 @@ public class BeeminderGraphData {
 			out.close();
 			
 			//For debugging:
-			//System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
-			//System.out.println("Response: " + connection.getResponseCode() +
-			//			" " + connection.getResponseMessage());
+			System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
+			System.out.println("Response: " + connection.getResponseCode() +
+						" " + connection.getResponseMessage());
 		} catch(Exception e) {
 			e.printStackTrace();
 			System.err.println("Unable to submit your data to Beeminder " +

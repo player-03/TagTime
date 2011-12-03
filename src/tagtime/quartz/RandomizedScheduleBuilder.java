@@ -35,7 +35,7 @@ import tagtime.random.RandomSequenceGenerator;
 public class RandomizedScheduleBuilder extends ScheduleBuilder<SimpleTrigger> {
 	private long interval = 0;
 	private int repeatCount = 0;
-	private int misfireInstruction = RandomizedTrigger.MISFIRE_INSTRUCTION_SMART_POLICY;
+	private int misfireInstruction = Trigger.MISFIRE_INSTRUCTION_SMART_POLICY;
 	private String rngKey = null;
 	
 	private RandomizedScheduleBuilder() {
@@ -363,7 +363,7 @@ public class RandomizedScheduleBuilder extends ScheduleBuilder<SimpleTrigger> {
 	 * If the Trigger misfires, use the
 	 * {@link Trigger#MISFIRE_INSTRUCTION_IGNORE_MISFIRE_POLICY}
 	 * instruction.
-	 * @return the updated CronScheduleBuilder
+	 * @return the updated RandomizedScheduleBuilder
 	 * @see Trigger#MISFIRE_INSTRUCTION_IGNORE_MISFIRE_POLICY
 	 */
 	public RandomizedScheduleBuilder withMisfireHandlingInstructionIgnoreMisfires() {
@@ -373,62 +373,64 @@ public class RandomizedScheduleBuilder extends ScheduleBuilder<SimpleTrigger> {
 	
 	/**
 	 * If the Trigger misfires, use the
-	 * {@link RandomizedTrigger#MISFIRE_INSTRUCTION_FIRE_NOW}
-	 * instruction.
+	 * {@link SimpleTrigger#MISFIRE_INSTRUCTION_FIRE_NOW} instruction.
 	 * @return the updated RandomizedScheduleBuilder
-	 * @see RandomizedTrigger#MISFIRE_INSTRUCTION_FIRE_NOW
+	 * @see SimpleTrigger#MISFIRE_INSTRUCTION_FIRE_NOW
 	 */
-	
 	public RandomizedScheduleBuilder withMisfireHandlingInstructionFireNow() {
-		misfireInstruction = RandomizedTrigger.MISFIRE_INSTRUCTION_FIRE_NOW;
+		misfireInstruction = SimpleTrigger.MISFIRE_INSTRUCTION_FIRE_NOW;
 		return this;
 	}
 	
 	/**
 	 * If the Trigger misfires, use the
-	 * {@link RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT}
+	 * {@link SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT}
 	 * instruction.
 	 * @return the updated RandomizedScheduleBuilder
-	 * @see RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT
+	 * @see SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT
 	 */
 	public RandomizedScheduleBuilder withMisfireHandlingInstructionNextWithExistingCount() {
-		misfireInstruction = RandomizedTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT;
+		misfireInstruction =
+					SimpleTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT;
 		return this;
 	}
 	
 	/**
 	 * If the Trigger misfires, use the
-	 * {@link RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT}
+	 * {@link SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT}
 	 * instruction.
 	 * @return the updated RandomizedScheduleBuilder
-	 * @see RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT
+	 * @see SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT
 	 */
 	public RandomizedScheduleBuilder withMisfireHandlingInstructionNextWithRemainingCount() {
-		misfireInstruction = RandomizedTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT;
+		misfireInstruction =
+					SimpleTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT;
 		return this;
 	}
 	
 	/**
 	 * If the Trigger misfires, use the
-	 * {@link RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT}
+	 * {@link SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT}
 	 * instruction.
 	 * @return the updated RandomizedScheduleBuilder
-	 * @see RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT
+	 * @see SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT
 	 */
 	public RandomizedScheduleBuilder withMisfireHandlingInstructionNowWithExistingCount() {
-		misfireInstruction = RandomizedTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT;
+		misfireInstruction =
+					SimpleTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT;
 		return this;
 	}
 	
 	/**
 	 * If the Trigger misfires, use the
-	 * {@link RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT}
+	 * {@link SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT}
 	 * instruction.
 	 * @return the updated RandomizedScheduleBuilder
-	 * @see RandomizedTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT
+	 * @see SimpleTrigger#MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT
 	 */
 	public RandomizedScheduleBuilder withMisfireHandlingInstructionNowWithRemainingCount() {
-		misfireInstruction = RandomizedTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT;
+		misfireInstruction =
+					SimpleTrigger.MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT;
 		return this;
 	}
 }

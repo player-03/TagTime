@@ -144,8 +144,9 @@ public class Settings {
 				
 				//find the setting type for the current line
 				try {
-					currentSettingType = SettingType.valueOf(SettingType.class,
-								currentLine.substring(0, firstSpace));
+					currentSettingType =
+								SettingType.valueOf(SettingType.class,
+													currentLine.substring(0, firstSpace));
 				} catch(Exception e) {
 					continue;
 				}
@@ -178,7 +179,7 @@ public class Settings {
 			//appropriate type and enter it in the map
 			if(!parsingCollection) {
 				settingValues.put(currentSettingType,
-								extractData(currentSettingType, currentData.toString()));
+									extractData(currentSettingType, currentData.toString()));
 			}
 		}
 		
@@ -336,7 +337,7 @@ public class Settings {
 	 */
 	@SuppressWarnings("unchecked")
 	public void addMultipleToCollection(SettingType setting,
-				Collection<? extends Object> values) {
+										Collection<? extends Object> values) {
 		Object collection = settingValues.get(setting);
 		
 		try {
@@ -355,7 +356,7 @@ public class Settings {
 	 */
 	@SuppressWarnings("unchecked")
 	public void incrementCounts(SettingType setting,
-				List<? extends String> values) {
+								List<? extends String> values) {
 		Set<TagCount> collection;
 		try {
 			collection = (Set<TagCount>) settingValues.get(setting);

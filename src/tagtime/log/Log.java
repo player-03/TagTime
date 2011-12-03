@@ -110,19 +110,17 @@ public class Log {
 	 * file, marking them as "afk RETRO", optionally with more tags.
 	 * @param extraTags Additional tags to add between "afk" and "RETRO".
 	 *            This string does not need to start or end with a space.
+	 * @param until The time at which to stop logging missed pings.
 	 */
-	public void logMissedPings(String extraTags) {
+	public void logMissedPings(String extraTags, long until) {
 		//determine the string to mark missed pings with
-		String tags = "afk ";
+		String tags = "afk";
 		
 		if(extraTags != null && !extraTags.equals("")) {
-			tags += extraTags + " ";
+			tags += " " + extraTags;
 		}
 		
-		tags += "RETRO";
-		
 		RandomizedTrigger trigger = Main.getTrigger();
-		Date now = new Date();
 		long lastPing = getLastTimestamp();
 		
 		if(lastPing != -1) {
@@ -130,10 +128,20 @@ public class Log {
 			//we don't add 1, it will most likely (999/1000) repeat a ping
 			Date ping = new Date((lastPing + 1) * 1000);
 			
-			for(ping = trigger.getFireTimeAfter(ping, true); ping.compareTo(now) < 0; ping =
+			for(ping = trigger.getFireTimeAfter(ping, true); ping.getTime() < until; ping =
 						trigger.getFireTimeAfter(ping, true)) {
-				log(ping.getTime(), tags);
+				logRetro(ping.getTime(), tags);
 			}
 		}
+	}
+	
+	/**
+	 * Logs an automatically-generated message.
+	 * @param timestamp The time to record in the log file.
+	 * @param data The automatically-generated tags to log, not including
+	 *            the "RETRO" tag at the end.
+	 */
+	public void logRetro(long timestamp, String data) {
+		log(timestamp, data + " RETRO");
 	}
 }

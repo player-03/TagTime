@@ -40,8 +40,7 @@ import tagtime.util.TagCount;
 public class PingJob implements Job {
 	protected final Window window;
 	
-	private long timeExecuted;
-	private long timeSincePreviousPing;
+	private long scheduledTime;
 	private boolean dataLogged = false;
 	
 	@SuppressWarnings("unchecked")
@@ -52,29 +51,32 @@ public class PingJob implements Job {
 	
 	@Override
 	public void execute(JobExecutionContext context) {
-		//if any pings were missed in the meantime, log them as
-		//"afk RETRO" (the default message)
-		Main.getLog().logMissedPings(null);
+		scheduledTime = context.getScheduledFireTime().getTime();
 		
-		timeExecuted = context.getScheduledFireTime().getTime();
-		
-		if(context.getPreviousFireTime() != null) {
-			timeSincePreviousPing = timeExecuted - context.getPreviousFireTime().getTime();
-			
-			System.out.println("Dispatching ping after a wait of "
-						+ HMSTimeFormatter.format(timeSincePreviousPing / 1000)
-						+ ".");
-			window.setVisible(true);
-		} else {
-			/*timeSincePreviousPing = 0;
-			System.out.println("Dispatching first ping this session.");*/
-
+		if(context.getPreviousFireTime() == null) {
 			//the first job is run immediately at the start of the session
 			//but this doesn't match the actual time it should have been
 			//run, so skip it
 			dataLogged = true;
 			window.dispose();
+			return;
 		}
+		
+		//if this job was executed too long after it was scheduled,
+		//log it as "afk off RETRO"
+		if(scheduledTime - System.currentTimeMillis() > (Integer) Main.getSettings()
+						.getValue(SettingType.WINDOW_TIMEOUT) * 1000) {
+			Main.getLog().logRetro(scheduledTime, "afk off");
+		}
+		
+		//this is probably the time since the previous ping was scheduled
+		//to run
+		long timeSincePreviousPing = scheduledTime - context.getPreviousFireTime().getTime();
+		System.out.println("Dispatching ping after a wait of "
+						+ HMSTimeFormatter.format(timeSincePreviousPing / 1000)
+						+ ".");
+		
+		window.setVisible(true);
 	}
 	
 	public void cancel() {
@@ -88,23 +90,28 @@ public class PingJob implements Job {
 		if(!dataLogged) {
 			dataLogged = true;
 			
-			Main.getLog().log(timeExecuted, tags);
+			Main.getLog().log(scheduledTime, tags);
 			Main.getSettings().incrementCounts(SettingType.CACHED_TAGS,
-												new LinkedList<String>(
-															Arrays.asList(tags.split(" "))));
+						new LinkedList<String>(Arrays.asList(tags.split(" "))));
 		}
 	}
 	
 	/**
-	 * Submits the default AFK message, unless data has already been
+	 * Submits the ping canceled message, unless data has already been
 	 * submitted.
 	 */
-	public void submitAFK(boolean computerOff) {
+	public void submitCanceled() {
 		if(!dataLogged) {
 			dataLogged = true;
 			
-			Main.getLog().log(timeExecuted, "afk "
-						+ (computerOff ? "off " : "") + "RETRO");
+			if(System.currentTimeMillis() - scheduledTime > (Integer) Main.getSettings()
+						.getValue(SettingType.WINDOW_TIMEOUT) * 1000) {
+				//use an underscore because timed_out should be treated
+				//as a single tag
+				Main.getLog().logRetro(scheduledTime, "timed_out");
+			} else {
+				Main.getLog().logRetro(scheduledTime, "canceled");
+			}
 		}
 	}
 }

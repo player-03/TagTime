@@ -110,9 +110,11 @@ public class Main {
 			//set up the trigger and schedule for the job
 			RandomizedScheduleBuilder scheduleBuilder =
 						RandomizedScheduleBuilder
-													.repeatMinutelyForever(	(Integer)
+													.repeatMinutelyForever(
+																(Integer)
 																			settings.getValue(SettingType.AVERAGE_GAP))
-													.withRNGKey(rngKey);
+													.withRNGKey(rngKey)
+													.withMisfireHandlingInstructionIgnoreMisfires();
 			trigger = (RandomizedTrigger) TriggerBuilder.newTrigger()
 														.withIdentity("trigger1", "group1")
 														.withSchedule(scheduleBuilder)
@@ -141,7 +143,9 @@ public class Main {
 			ActionListener settingsListener = new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					System.out.println("Settings manager not implemented; sorry.");
+					System.out.println("Settings manager not implemented; sorry. " +
+								"Currently, you have to exit TagTime, manually edit " +
+								getSettings().username + "_settings.txt, and restart TagTime.");
 				}
 			};
 			MenuItem settingsMenuItem = new MenuItem("Settings", new MenuShortcut(KeyEvent.VK_S));
@@ -190,7 +194,7 @@ public class Main {
 		}
 		
 		//record all the pings that were missed while TagTime wasn't running
-		log.logMissedPings("off");
+		log.logMissedPings("off", now.getTime());
 		
 		long timeDiff = (now.getTime() - trigger.getFireTimeBefore(now, true).getTime()) / 1000;
 		assert timeDiff > 0;

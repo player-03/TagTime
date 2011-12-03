@@ -28,9 +28,15 @@ import java.util.TreeSet;
  */
 public enum SettingType {
 	/**
-	 * The user-defined average gap between pings, in minutes.
+	 * The average gap between pings, in minutes.
 	 */
 	AVERAGE_GAP(int.class, 45),
+
+	/**
+	 * The length of time, in seconds, that ping windows will wait before
+	 * timing out.
+	 */
+	WINDOW_TIMEOUT(int.class, 60),
 
 	/**
 	 * The tags the user has used before.
