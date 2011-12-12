@@ -92,7 +92,8 @@ public class PingWindow extends JFrame implements ActionListener {
 		//set up the list of previously-submitted tags
 		quickTags = new JList(cachedTags);
 		quickTags.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		quickTags.setVisibleRowCount(5);
+		quickTags.setVisibleRowCount((Integer) tagTimeInstance.settings
+					.getValue(SettingType.CACHED_TAGS_VISIBLE));
 		quickTags.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -102,10 +103,10 @@ public class PingWindow extends JFrame implements ActionListener {
 		
 		//prepare the list to be displayed
 		JScrollPane listDisplay = new JScrollPane(quickTags);
-		listDisplay.setPreferredSize(new Dimension(300, 60));
 		
 		//set up the input text field
 		inputText = new TextArea("", 0, 0, TextArea.SCROLLBARS_NONE);
+		inputText.setMinimumSize(new Dimension(200, 15));
 		inputText.setPreferredSize(new Dimension(300, 30));
 		inputText.setEditable(true);
 		
@@ -141,7 +142,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		root.add(Box.createRigidArea(new Dimension(0, 5)));
 		root.add(buttonPane);
 		
-		root.setDefaultButton(submitButton);
+		//root.setDefaultButton(submitButton);
 		
 		//clean up when closed
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);

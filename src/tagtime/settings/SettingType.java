@@ -44,6 +44,12 @@ public enum SettingType {
 	CACHED_TAGS(TreeSet.class, null),
 
 	/**
+	 * The cached tags display/selection window will be tall enough to
+	 * display this many tags.
+	 */
+	CACHED_TAGS_VISIBLE(int.class, 8),
+
+	/**
 	 * The x position of the user's preferred window location.
 	 */
 	WINDOW_X(int.class, 20),
