@@ -42,7 +42,7 @@ import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 
-import tagtime.Main;
+import tagtime.TagTime;
 import tagtime.settings.SettingType;
 import tagtime.util.TagCount;
 
@@ -52,6 +52,8 @@ import tagtime.util.TagCount;
 public class PingWindow extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1489384636886031541L;
 	
+	public final TagTime tagTimeInstance;
+	
 	private static final String SUBMIT = "Submit";
 	private static final String CANCEL = "Cancel";
 	
@@ -60,13 +62,16 @@ public class PingWindow extends JFrame implements ActionListener {
 	
 	private PingJob ownerJob;
 	
-	public PingWindow(PingJob ownerJob, Object[] tagCounts) {
+	public PingWindow(TagTime tagTimeInstance, PingJob ownerJob, Object[] tagCounts) {
 		//create the window
-		super("TagTime");
-		setIconImage(Main.iconImage);
+		super("Pinging " + tagTimeInstance.username + " - TagTime");
+		
+		this.tagTimeInstance = tagTimeInstance;
+		
+		setIconImage(tagTimeInstance.iconImage);
 		setSize(350, 300);
-		setLocation((Integer) Main.getSettings().getValue(SettingType.WINDOW_X),
-					(Integer) Main.getSettings().getValue(SettingType.WINDOW_Y));
+		setLocation((Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_X),
+					(Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_Y));
 		
 		//record the job that created this window
 		this.ownerJob = ownerJob;
@@ -145,8 +150,8 @@ public class PingWindow extends JFrame implements ActionListener {
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentMoved(ComponentEvent e) {
-				Main.getSettings().setValue(SettingType.WINDOW_X, getX());
-				Main.getSettings().setValue(SettingType.WINDOW_Y, getY());
+				PingWindow.this.tagTimeInstance.settings.setValue(SettingType.WINDOW_X, getX());
+				PingWindow.this.tagTimeInstance.settings.setValue(SettingType.WINDOW_Y, getY());
 			}
 		});
 	}
@@ -156,9 +161,11 @@ public class PingWindow extends JFrame implements ActionListener {
 		super.setVisible(b);
 		
 		if(b) {
-			//focus on this window and the input text only if this is
-			//the only window
-			if(Window.getWindows().length == 1) {
+			//focus on this window and the input text only if there
+			//aren't any other windows, and only if the window is allowed
+			//to steal focus
+			if((Boolean) tagTimeInstance.settings.getValue(SettingType.STEAL_FOCUS)
+						&& Window.getWindows().length == 1) {
 				inputText.requestFocus();
 			}
 		}
@@ -175,7 +182,7 @@ public class PingWindow extends JFrame implements ActionListener {
 			//flush all saved data upon submission (multiple windows
 			//may be canceled at once, but there should be a minimum of
 			//a few seconds between submissions)
-			Main.getSettings().flush();
+			tagTimeInstance.settings.flush();
 		} else if(action.equals(CANCEL)) {
 			dispose();
 		}

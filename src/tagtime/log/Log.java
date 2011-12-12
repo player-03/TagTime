@@ -25,6 +25,7 @@ import java.text.DateFormat;
 import java.util.Date;
 
 import tagtime.Main;
+import tagtime.TagTime;
 import tagtime.quartz.RandomizedTrigger;
 import tagtime.util.BackwardsAccessFile;
 
@@ -35,19 +36,22 @@ import tagtime.util.BackwardsAccessFile;
  * reached, the data can be submitted later.
  */
 public class Log {
-	/**
-	 * The length of the UNIX timestamps in the log file.
-	 */
-	public static final int TIMESTAMP_LENGTH = 10;
+	public final TagTime tagTimeInstance;
 	
 	private final BackwardsAccessFile logFile;
 	
-	public Log() throws IOException {
+	private long lastTimestamp = -1;
+	
+	public Log(TagTime tagTimeInstance) throws IOException {
+		this.tagTimeInstance = tagTimeInstance;
+		
 		File filePath = new File(Main.getDataDirectory().getPath() + "/" +
-					Main.getSettings().username + ".log");
+					tagTimeInstance.settings.username + ".log");
 		
 		//this will create the file if necessary
 		logFile = new BackwardsAccessFile(filePath, "rw");
+		
+		findLastTimestamp();
 	}
 	
 	/**
@@ -61,11 +65,83 @@ public class Log {
 	 *            data, but it does not need to include a timestamp.
 	 */
 	public void log(long timestamp, String data) {
-		//start with a timestamp
-		//(note: Unix time is in seconds, not milliseconds)
-		String annotatedData = Long.toString(timestamp / 1000)
-					//add the data
-					+ " " + data;
+		//convert to Unix time (that is, use seconds, not milliseconds)
+		long timestampInSeconds = timestamp / 1000;
+		
+		StringBuffer extraData = null;
+		
+		try {
+			logFile.seek(logFile.length());
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		
+		if(timestampInSeconds > lastTimestamp) {
+			lastTimestamp = timestampInSeconds;
+		} else {
+			//special case: check if this ping goes immediately before
+			//the final line of the file
+			long prevTimestamp = timestampInSeconds + 1;
+			try {
+				logFile.seekLastLine("");
+				String prevLine = logFile.readPreviousLine("0123456789");
+				prevTimestamp = Long.parseLong(prevLine.substring(0,
+								prevLine.indexOf(' ')));
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+			
+			//if it does, simply place it there
+			if(prevTimestamp < timestampInSeconds) {
+				//the pointer is already in the correct spot
+			}
+
+			//if not, search from the beginning
+			else {
+				try {
+					long nextTimestamp = 0;
+					logFile.seek(0);
+					String line;
+					
+					while(nextTimestamp < timestampInSeconds) {
+						line = logFile.readLine();
+						try {
+							nextTimestamp = Long.parseLong(line.substring(0,
+											line.indexOf(' ')));
+						} catch(NumberFormatException e) {}
+					}
+					
+					logFile.seekLineStart("0123456789");
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			//copy all data following the file pointer, so that the
+			//current data can be inserted without overwriting anything
+			try {
+				long insertionPosition = logFile.getFilePointer();
+				extraData = new StringBuffer();
+				String line;
+				
+				while((line = logFile.readLine()) != null) {
+					extraData.append(line);
+					extraData.append('\n');
+				}
+				
+				logFile.seek(insertionPosition);
+			} catch(IOException e) {
+				e.printStackTrace();
+				try {
+					logFile.seek(logFile.length());
+				} catch(IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		}
+		
+		//combine the timestamp and tags
+		String annotatedData = Long.toString(timestampInSeconds) + " " + data;
 		
 		//pad the string with spaces until it is 55 characters long
 		int paddingNeeded = 55 - annotatedData.length();
@@ -80,8 +156,12 @@ public class Log {
 		
 		//write the data to the file
 		try {
-			logFile.seek(logFile.length());
 			logFile.writeBytes(annotatedData);
+			
+			//if the line needed to be inserted, re-write all following lines
+			if(extraData != null) {
+				logFile.writeBytes(extraData.toString());
+			}
 		} catch(IOException e) {
 			System.err.println("Unable to write this line to the log file:");
 			System.err.println(annotatedData);
@@ -89,20 +169,26 @@ public class Log {
 		}
 	}
 	
+	private void findLastTimestamp() {
+		try {
+			//get the final line with a digit on it
+			String timestamp = logFile.readLastLine("0123456789");
+			
+			if(timestamp == null) {
+				return;
+			}
+			
+			timestamp = timestamp.substring(0, timestamp.indexOf(' '));
+			lastTimestamp = Long.parseLong(timestamp);
+		} catch(IOException e) {}
+	}
+	
 	/**
 	 * @return The last recorded timestamp in the log file. Returns -1 if
 	 *         there are no recorded timestamps.
 	 */
 	public long getLastTimestamp() {
-		try {
-			//get the final line with a digit on it
-			String timestamp = logFile.readLastLine("0123456789");
-			
-			timestamp = timestamp.substring(0, timestamp.indexOf(' '));
-			return Long.parseLong(timestamp);
-		} catch(IOException e) {}
-		
-		return -1;
+		return lastTimestamp;
 	}
 	
 	/**
@@ -120,7 +206,7 @@ public class Log {
 			tags += " " + extraTags;
 		}
 		
-		RandomizedTrigger trigger = Main.getTrigger();
+		RandomizedTrigger trigger = tagTimeInstance.trigger;
 		long lastPing = getLastTimestamp();
 		
 		if(lastPing != -1) {

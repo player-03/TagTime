@@ -54,6 +54,12 @@ public enum SettingType {
 	WINDOW_Y(int.class, 20),
 
 	/**
+	 * Whether ping windows should attempt to steal focus from other
+	 * applications.
+	 */
+	STEAL_FOCUS(Boolean.class, true),
+
+	/**
 	 * The encryption key used to generate pseudo-random values.
 	 */
 	RNG_KEY(String.class, null),

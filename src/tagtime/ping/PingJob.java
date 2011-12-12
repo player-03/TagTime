@@ -19,7 +19,6 @@
 
 package tagtime.ping;
 
-import java.awt.Window;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.TreeSet;
@@ -27,7 +26,8 @@ import java.util.TreeSet;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 
-import tagtime.Main;
+import tagtime.TagTime;
+import tagtime.quartz.TagTimeJobDetailImpl;
 import tagtime.settings.SettingType;
 import tagtime.util.HMSTimeFormatter;
 import tagtime.util.TagCount;
@@ -38,19 +38,25 @@ import tagtime.util.TagCount;
  * PingWindow.
  */
 public class PingJob implements Job {
-	protected final Window window;
+	private TagTime tagTimeInstance;
+	
+	protected PingWindow window;
 	
 	private long scheduledTime;
 	private boolean dataLogged = false;
 	
-	@SuppressWarnings("unchecked")
 	public PingJob() throws ClassCastException {
-		Object cachedTags = Main.getSettings().getValue(SettingType.CACHED_TAGS);
-		window = new PingWindow(this, ((TreeSet<TagCount>) cachedTags).toArray());
 	}
 	
 	@Override
+	@SuppressWarnings("unchecked")
 	public void execute(JobExecutionContext context) {
+		assert context.getJobDetail() instanceof TagTimeJobDetailImpl;
+		tagTimeInstance = ((TagTimeJobDetailImpl) context.getJobDetail()).getTagTimeInstance();
+		
+		Object cachedTags = tagTimeInstance.settings.getValue(SettingType.CACHED_TAGS);
+		window = new PingWindow(tagTimeInstance, this, ((TreeSet<TagCount>) cachedTags).toArray());
+		
 		scheduledTime = context.getScheduledFireTime().getTime();
 		
 		if(context.getPreviousFireTime() == null) {
@@ -64,9 +70,12 @@ public class PingJob implements Job {
 		
 		//if this job was executed too long after it was scheduled,
 		//log it as "afk off RETRO"
-		if(scheduledTime - System.currentTimeMillis() > (Integer) Main.getSettings()
+		if(System.currentTimeMillis() - scheduledTime > (Integer) tagTimeInstance.settings
 						.getValue(SettingType.WINDOW_TIMEOUT) * 1000) {
-			Main.getLog().logRetro(scheduledTime, "afk off");
+			tagTimeInstance.log.logRetro(scheduledTime, "afk off");
+			dataLogged = true;
+			cancel();
+			return;
 		}
 		
 		//this is probably the time since the previous ping was scheduled
@@ -90,8 +99,8 @@ public class PingJob implements Job {
 		if(!dataLogged) {
 			dataLogged = true;
 			
-			Main.getLog().log(scheduledTime, tags);
-			Main.getSettings().incrementCounts(SettingType.CACHED_TAGS,
+			tagTimeInstance.log.log(scheduledTime, tags);
+			tagTimeInstance.settings.incrementCounts(SettingType.CACHED_TAGS,
 						new LinkedList<String>(Arrays.asList(tags.split(" "))));
 		}
 	}
@@ -104,14 +113,7 @@ public class PingJob implements Job {
 		if(!dataLogged) {
 			dataLogged = true;
 			
-			if(System.currentTimeMillis() - scheduledTime > (Integer) Main.getSettings()
-						.getValue(SettingType.WINDOW_TIMEOUT) * 1000) {
-				//use an underscore because timed_out should be treated
-				//as a single tag
-				Main.getLog().logRetro(scheduledTime, "timed_out");
-			} else {
-				Main.getLog().logRetro(scheduledTime, "canceled");
-			}
+			tagTimeInstance.log.logRetro(scheduledTime, "canceled");
 		}
 	}
 }

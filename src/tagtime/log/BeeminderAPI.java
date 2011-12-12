@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 
 import tagtime.Main;
+import tagtime.TagTime;
 import tagtime.settings.SettingType;
 import tagtime.settings.Settings;
 
@@ -32,10 +33,10 @@ public class BeeminderAPI {
 	private final Settings userSettings;
 	private final List<BeeminderGraphData> graphData;
 	
-	public BeeminderAPI(Settings userSettings) throws ClassCastException {
+	public BeeminderAPI(TagTime tagTimeInstance, Settings userSettings) throws ClassCastException {
 		this.userSettings = userSettings;
 		
-		String username = userSettings.username;
+		String username = tagTimeInstance.username;
 		
 		@SuppressWarnings("unchecked")
 		Collection<String> graphDataEntries = (Collection<String>) userSettings
@@ -43,7 +44,7 @@ public class BeeminderAPI {
 		
 		graphData = new ArrayList<BeeminderGraphData>(graphDataEntries.size());
 		for(String dataEntry : graphDataEntries) {
-			graphData.add(new BeeminderGraphData(username, dataEntry));
+			graphData.add(new BeeminderGraphData(tagTimeInstance, username, dataEntry));
 		}
 	}
 	

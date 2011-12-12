@@ -43,6 +43,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import tagtime.Main;
+import tagtime.TagTime;
 import tagtime.settings.SettingType;
 
 /**
@@ -70,6 +71,8 @@ public class BeeminderGraphData {
 	 */
 	private static final DecimalFormat hourFormatter =
 										new DecimalFormat("#.##");
+	
+	public final TagTime tagTimeInstance;
 	
 	/**
 	 * The name of the Beeminder graph.
@@ -113,15 +116,17 @@ public class BeeminderGraphData {
 	 * @param dataEntry The data entry for the current graph. This must
 	 *            be in the format "graphName|tags".
 	 */
-	public BeeminderGraphData(String username, String dataEntry) {
+	public BeeminderGraphData(TagTime tagTimeInstance, String username, String dataEntry) {
 		if(username == null || dataEntry == null) {
 			throw new IllegalArgumentException("Both parameters to the " +
 						"BeeminderGraphData constructor must be defined.");
 		}
 		
+		this.tagTimeInstance = tagTimeInstance;
+		
 		//the URL will be determined based on whether the data is to be
 		//overwritten
-		boolean overwriteAllData = (Boolean) Main.getSettings()
+		boolean overwriteAllData = (Boolean) tagTimeInstance.settings
 													.getValue(SettingType.OVERWRITE_ALL_DATA);
 		
 		//find the graph url
@@ -132,7 +137,7 @@ public class BeeminderGraphData {
 		}
 		graphName = dataEntry.substring(0, graphDelim);
 		try {
-			graphURL = new URL((String) Main.getSettings().getValue(SettingType.SUBMISSION_URL) +
+			graphURL = new URL((String) tagTimeInstance.settings.getValue(SettingType.SUBMISSION_URL) +
 						"/" + username +
 						"/goals/" +
 						graphName +
@@ -359,7 +364,7 @@ public class BeeminderGraphData {
 		//combine all data to be submitted into a single string
 		boolean firstEntry = true;
 		StringBuffer data = new StringBuffer("origin=tgt");
-		if(!(Boolean) Main.getSettings().getValue(SettingType.OVERWRITE_ALL_DATA)) {
+		if(!(Boolean) tagTimeInstance.settings.getValue(SettingType.OVERWRITE_ALL_DATA)) {
 			data.append("&sendmail=false");
 		}
 		data.append("&datapoints_text=");
@@ -425,7 +430,7 @@ public class BeeminderGraphData {
 						"will be set to true. (Feel free to undo this " +
 						"after you submit successfully.)");
 			
-			Main.getSettings().setValue(SettingType.OVERWRITE_ALL_DATA, true);
+			tagTimeInstance.settings.setValue(SettingType.OVERWRITE_ALL_DATA, true);
 		}
 	}
 }
