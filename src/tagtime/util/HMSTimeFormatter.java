@@ -20,6 +20,15 @@
 package tagtime.util;
 
 public class HMSTimeFormatter {
+	/**
+	 * @param time An amount of time in seconds.
+	 * @return A string representing the given amount of time, formatted
+	 *         appropriately based on the number of hours, minutes, and
+	 *         seconds. Sample return values are
+	 *         "4 minutes and 1 second", "41 seconds", and "1 hour, 19
+	 *         minutes, and 53 seconds". If 0 or a negative value is
+	 *         provided, "0 seconds" will be returned.
+	 */
 	public static String format(long time) {
 		long hours = time / 3600;
 		long minutes = (time % 3600) / 60;

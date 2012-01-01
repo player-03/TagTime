@@ -64,7 +64,7 @@ public class Log {
 	 *            user-generated tags and any automatically-generated
 	 *            data, but it does not need to include a timestamp.
 	 */
-	public void log(long timestamp, String data) {
+	public synchronized void log(long timestamp, String data) {
 		//convert to Unix time (that is, use seconds, not milliseconds)
 		long timestampInSeconds = timestamp / 1000;
 		

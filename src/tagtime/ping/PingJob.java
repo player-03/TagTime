@@ -27,7 +27,6 @@ import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 
 import tagtime.TagTime;
-import tagtime.quartz.TagTimeJobDetailImpl;
 import tagtime.settings.SettingType;
 import tagtime.util.HMSTimeFormatter;
 import tagtime.util.TagCount;
@@ -51,8 +50,9 @@ public class PingJob implements Job {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void execute(JobExecutionContext context) {
-		assert context.getJobDetail() instanceof TagTimeJobDetailImpl;
-		tagTimeInstance = ((TagTimeJobDetailImpl) context.getJobDetail()).getTagTimeInstance();
+		tagTimeInstance = (TagTime) context.getJobDetail().getJobDataMap()
+									.getWrappedMap().get(TagTime.TAG_TIME_INSTANCE);
+		assert tagTimeInstance != null;
 		
 		Object cachedTags = tagTimeInstance.settings.getValue(SettingType.CACHED_TAGS);
 		window = new PingWindow(tagTimeInstance, this, ((TreeSet<TagCount>) cachedTags).toArray());
@@ -60,36 +60,53 @@ public class PingJob implements Job {
 		scheduledTime = context.getScheduledFireTime().getTime();
 		
 		if(context.getPreviousFireTime() == null) {
-			//the first job is run immediately at the start of the session
-			//but this doesn't match the actual time it should have been
-			//run, so skip it
+			//the first job is run immediately at the start of the
+			//session, but this doesn't match the actual time it should
+			//have been run, so skip it
 			dataLogged = true;
 			window.dispose();
 			return;
 		}
 		
+		long windowTimeout = ((Integer) tagTimeInstance.settings
+							.getValue(SettingType.WINDOW_TIMEOUT)) * 1000;
+		
 		//if this job was executed too long after it was scheduled,
 		//log it as "afk off RETRO"
-		if(System.currentTimeMillis() - scheduledTime > (Integer) tagTimeInstance.settings
-						.getValue(SettingType.WINDOW_TIMEOUT) * 1000) {
-			tagTimeInstance.log.logRetro(scheduledTime, "afk off");
-			dataLogged = true;
-			cancel();
+		if(checkTimedOut(windowTimeout, "afk off")) {
 			return;
 		}
 		
-		//this is probably the time since the previous ping was scheduled
-		//to run
 		long timeSincePreviousPing = scheduledTime - context.getPreviousFireTime().getTime();
 		System.out.println("Dispatching ping after a wait of "
 						+ HMSTimeFormatter.format(timeSincePreviousPing / 1000)
 						+ ".");
 		
 		window.setVisible(true);
+		
+		try {
+			Thread.sleep(windowTimeout);
+		} catch(InterruptedException e) {}
+		
+		checkTimedOut(windowTimeout, "afk");
 	}
 	
 	public void cancel() {
 		window.dispose();
+	}
+	
+	private boolean checkTimedOut(long timeoutLength, String timeoutMessage) {
+		if(!dataLogged) {
+			if(System.currentTimeMillis() - scheduledTime > timeoutLength) {
+				dataLogged = true;
+				tagTimeInstance.log.logRetro(scheduledTime, timeoutMessage);
+				cancel();
+				
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	/**

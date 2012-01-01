@@ -28,6 +28,8 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.TextEvent;
+import java.awt.event.TextListener;
 import java.awt.event.WindowListener;
 
 import javax.swing.BorderFactory;
@@ -109,6 +111,14 @@ public class PingWindow extends JFrame implements ActionListener {
 		inputText.setMinimumSize(new Dimension(200, 15));
 		inputText.setPreferredSize(new Dimension(300, 30));
 		inputText.setEditable(true);
+		inputText.addTextListener(new TextListener() {
+			@Override
+			public void textValueChanged(TextEvent e) {
+				//the submit button should be enabled if and only if text
+				//has been entered
+				submitButton.setEnabled(inputText.getText().length() > 0);
+			}
+		});
 		
 		//create the heading text
 		JLabel text = new JLabel("<html>It's tag time! What are you doing <i>right now</i>?");
@@ -142,7 +152,11 @@ public class PingWindow extends JFrame implements ActionListener {
 		root.add(Box.createRigidArea(new Dimension(0, 5)));
 		root.add(buttonPane);
 		
-		//root.setDefaultButton(submitButton);
+		//the submit button is selected when the user presses enter, but
+		//only if it's enabled, and it doesn't get enabled until the user
+		//enters a tag
+		submitButton.setEnabled(false);
+		root.setDefaultButton(submitButton);
 		
 		//clean up when closed
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -159,7 +173,9 @@ public class PingWindow extends JFrame implements ActionListener {
 	
 	@Override
 	public void setVisible(boolean b) {
-		super.setVisible(b);
+		if(b == isVisible()) {
+			return;
+		}
 		
 		if(b) {
 			//focus on this window and the input text only if there
@@ -167,8 +183,17 @@ public class PingWindow extends JFrame implements ActionListener {
 			//to steal focus
 			if((Boolean) tagTimeInstance.settings.getValue(SettingType.STEAL_FOCUS)
 						&& Window.getWindows().length == 1) {
-				inputText.requestFocus();
+				super.setVisible(true);
+				inputText.requestFocusInWindow();
+			} else {
+				//in some environments, setting visible to true causes the
+				//window to steal focus
+				setFocusableWindowState(false);
+				super.setVisible(true);
+				setFocusableWindowState(true);
 			}
+		} else {
+			super.setVisible(false);
 		}
 	}
 	

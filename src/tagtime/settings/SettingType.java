@@ -61,7 +61,9 @@ public enum SettingType {
 
 	/**
 	 * Whether ping windows should attempt to steal focus from other
-	 * applications.
+	 * applications. At the moment, this doesn't seem to make a
+	 * difference; the window tends to steal focus whether or not it's
+	 * instructed to.
 	 */
 	STEAL_FOCUS(Boolean.class, true),
 
@@ -128,13 +130,14 @@ public enum SettingType {
 	
 	/**
 	 * The type of value stored in this setting. For example, the
-	 * AVERAGE_GAP setting is a number of minutes, so this would be int.
+	 * AVERAGE_GAP setting is a number of minutes, so this would be
+	 * int.class.
 	 */
 	public final Class<?> valueClass;
 	
 	/**
 	 * This setting's default value. For complicated objects like sets,
-	 * this will most likely be null. If it is not null, it is guaranteed
+	 * this will most likely be null. If it is not null, it is required
 	 * to be an instance of <code>type</code>.
 	 */
 	public final Object defaultValue;

@@ -35,6 +35,7 @@ import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.util.Date;
 
+import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -46,12 +47,17 @@ import tagtime.log.Log;
 import tagtime.ping.PingJob;
 import tagtime.quartz.RandomizedScheduleBuilder;
 import tagtime.quartz.RandomizedTrigger;
-import tagtime.quartz.TagTimeJobBuilder;
 import tagtime.settings.SettingType;
 import tagtime.settings.Settings;
 import tagtime.util.HMSTimeFormatter;
 
+/**
+ * An instance of TagTime for one particular user. This class contains
+ * all user-specific data and handles all scheduling for that user.
+ */
 public class TagTime {
+	public static final String TAG_TIME_INSTANCE = "TagTime Instance";
+	
 	public final String username;
 	
 	public final Settings settings;
@@ -88,26 +94,24 @@ public class TagTime {
 		
 		try {
 			//define a job
-			jobDetail = TagTimeJobBuilder.newJob(PingJob.class)
+			jobDetail = JobBuilder.newJob(PingJob.class)
 									.withIdentity(username)
-									.withTagTimeInstance(this)
 									.build();
+			
+			//store a reference to this
+			jobDetail.getJobDataMap().put(TAG_TIME_INSTANCE, this);
 			
 			//set up the trigger and schedule for the job
 			RandomizedScheduleBuilder scheduleBuilder =
-						RandomizedScheduleBuilder
-													.repeatMinutelyForever(
-																(Integer)
-																			settings.getValue(SettingType.AVERAGE_GAP))
-													.withRNGKey(rngKey)
-													.withMisfireHandlingInstructionIgnoreMisfires();
-			trigger =
-						(RandomizedTrigger) TriggerBuilder
-									.newTrigger()
-														.withIdentity("trigger for " + username,
-																	"group for " + username)
-														.withSchedule(scheduleBuilder)
-														.build();
+						RandomizedScheduleBuilder.repeatMinutelyForever(
+										(Integer) settings.getValue(SettingType.AVERAGE_GAP))
+									.withRNGKey(rngKey)
+									.withMisfireHandlingInstructionIgnoreMisfires();
+			trigger = (RandomizedTrigger) TriggerBuilder.newTrigger()
+									.withIdentity("trigger for " + username,
+												"group for " + username)
+									.withSchedule(scheduleBuilder)
+									.build();
 			
 			scheduler = StdSchedulerFactory.getDefaultScheduler();
 		} catch(SchedulerException e) {
