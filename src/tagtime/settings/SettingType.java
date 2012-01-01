@@ -61,9 +61,7 @@ public enum SettingType {
 
 	/**
 	 * Whether ping windows should attempt to steal focus from other
-	 * applications. At the moment, this doesn't seem to make a
-	 * difference; the window tends to steal focus whether or not it's
-	 * instructed to.
+	 * applications.
 	 */
 	STEAL_FOCUS(Boolean.class, true),
 
