@@ -82,7 +82,7 @@ public enum SettingType {
 	 * <p>
 	 * For example, if a user with username alice had the entry
 	 * <code>work|job work</code>, all pings including at least one of
-	 * "job" or "work" would be sent to bmndr.com/alice/work.
+	 * "job" or "work" would be sent to beta.beeminder.com/alice/work.
 	 * </p>
 	 * <p>
 	 * Additionally, if any tag is preceded by a - sign, that tag must
@@ -136,7 +136,7 @@ public enum SettingType {
 	/**
 	 * This setting's default value. For complicated objects like sets,
 	 * this will most likely be null. If it is not null, it is required
-	 * to be an instance of <code>type</code>.
+	 * to be an instance of <code>valueClass</code>.
 	 */
 	public final Object defaultValue;
 	
