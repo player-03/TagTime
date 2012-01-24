@@ -333,10 +333,6 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 			randomValue = 0.00000001;
 		}
 		
-		//TODO: (Possibly) implement a lower bound of 1 second, because
-		//the log file stores values in seconds and therefore can't
-		//disambiguate other values
-		
 		return (long) (getRepeatInterval() * -1 * Math.log(randomValue));
 	}
 	
@@ -352,8 +348,8 @@ public class RandomizedTriggerImpl extends SimpleTriggerImpl
 	 * triggered as a result, this method will fail to take that into
 	 * account. For example, if the trigger is triggered five times and
 	 * then skipped twice, getTimesTriggered() will return 5, but passing
-	 * 5 to timeElapsedAfter() will return a value corresponding to part
-	 * of the skipped time period.
+	 * 5 to getTimeElapsedAfter() will return a value corresponding to
+	 * part of the skipped time period.
 	 * </p>
 	 */
 	public long getTimeElapsedAfter(long index) {

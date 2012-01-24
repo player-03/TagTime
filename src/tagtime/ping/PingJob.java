@@ -84,11 +84,12 @@ public class PingJob implements Job {
 		
 		window.setVisible(true);
 		
-		try {
-			Thread.sleep(windowTimeout);
-		} catch(InterruptedException e) {}
-		
-		checkTimedOut(windowTimeout, "afk");
+		do {
+			try {
+				Thread.sleep(windowTimeout);
+			} catch(InterruptedException e) {}
+			checkTimedOut(windowTimeout, "afk");
+		} while(!dataLogged);
 	}
 	
 	public void cancel() {

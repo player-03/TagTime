@@ -68,6 +68,12 @@ public class Log {
 		//convert to Unix time (that is, use seconds, not milliseconds)
 		long timestampInSeconds = timestamp / 1000;
 		
+		//if the given value equals the final timestamp, increment it
+		if(timestampInSeconds == lastTimestamp) {
+			timestampInSeconds++;
+			timestamp += 1000;
+		}
+		
 		StringBuffer extraData = null;
 		
 		try {
@@ -180,7 +186,7 @@ public class Log {
 			
 			timestamp = timestamp.substring(0, timestamp.indexOf(' '));
 			lastTimestamp = Long.parseLong(timestamp);
-		} catch(IOException e) {}
+		} catch(Exception e) {}
 	}
 	
 	/**

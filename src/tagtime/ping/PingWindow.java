@@ -19,9 +19,9 @@
 
 package tagtime.ping;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.TextArea;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -71,7 +71,6 @@ public class PingWindow extends JFrame implements ActionListener {
 		this.tagTimeInstance = tagTimeInstance;
 		
 		setIconImage(tagTimeInstance.iconImage);
-		setSize(350, 300);
 		setLocation((Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_X),
 					(Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_Y));
 		
@@ -152,6 +151,15 @@ public class PingWindow extends JFrame implements ActionListener {
 		root.add(Box.createRigidArea(new Dimension(0, 5)));
 		root.add(buttonPane);
 		
+		int windowHeight = 0;
+		
+		for(int i = root.getComponentCount() - 1; i >= 0; i--) {
+			Component component = root.getComponent(i);
+			windowHeight += component.getPreferredSize().height;
+		}
+		
+		setSize(350, Math.max(300, windowHeight));
+		
 		//the submit button is selected when the user presses enter, but
 		//only if it's enabled, and it doesn't get enabled until the user
 		//enters a tag
@@ -178,13 +186,11 @@ public class PingWindow extends JFrame implements ActionListener {
 		}
 		
 		if(b) {
-			//focus on this window and the input text only if there
-			//aren't any other windows, and only if the window is allowed
-			//to steal focus
-			if((Boolean) tagTimeInstance.settings.getValue(SettingType.STEAL_FOCUS)
-						&& Window.getWindows().length == 1) {
+			//focus on this window and the input text only if the window
+			//is allowed to steal focus
+			if((Boolean) tagTimeInstance.settings.getValue(SettingType.STEAL_FOCUS)) {
 				super.setVisible(true);
-				inputText.requestFocusInWindow();
+				inputText.requestFocus();
 			} else {
 				//in some environments, setting visible to true causes the
 				//window to steal focus
@@ -233,7 +239,8 @@ public class PingWindow extends JFrame implements ActionListener {
 		//append the selected tag only if it isn't already there
 		if(selectedValue != null && !currentText.contains(selectedValue.toString())) {
 			//add a space if needed
-			if(currentText.length() > 0) {
+			if(currentText.length() > 0
+						&& currentText.charAt(currentText.length() - 1) != ' ') {
 				inputText.append(" ");
 			}
 			
