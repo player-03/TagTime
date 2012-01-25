@@ -31,7 +31,14 @@ import java.awt.event.MouseEvent;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
 import java.awt.event.WindowListener;
+import java.io.File;
+import java.io.IOException;
 
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -44,6 +51,7 @@ import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 
+import tagtime.Main;
 import tagtime.TagTime;
 import tagtime.settings.SettingType;
 import tagtime.util.TagCount;
@@ -70,7 +78,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		
 		this.tagTimeInstance = tagTimeInstance;
 		
-		setIconImage(tagTimeInstance.iconImage);
+		setIconImage(Main.getIconImage());
 		setLocation((Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_X),
 					(Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_Y));
 		
@@ -198,9 +206,42 @@ public class PingWindow extends JFrame implements ActionListener {
 				super.setVisible(true);
 				setFocusableWindowState(true);
 			}
+			
+			playSound();
 		} else {
 			super.setVisible(false);
 		}
+	}
+	
+	/**
+	 * Plays the sound associated with opening a window.
+	 */
+	private void playSound() {
+		File soundFile = new File(Main.getSoundDirectory() + "/"
+					+ ((String) tagTimeInstance.settings.getValue(SettingType.SOUND_TO_PLAY)));
+		
+		if(!soundFile.exists()) {
+			return;
+		}
+		
+		Clip soundClip;
+		try {
+			soundClip = AudioSystem.getClip();
+			AudioInputStream inputStream = AudioSystem.
+						getAudioInputStream(soundFile);
+			soundClip.open(inputStream);
+		} catch(UnsupportedAudioFileException e) {
+			e.printStackTrace();
+			return;
+		} catch(IOException e) {
+			e.printStackTrace();
+			return;
+		} catch(LineUnavailableException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		soundClip.loop(0);
 	}
 	
 	@Override

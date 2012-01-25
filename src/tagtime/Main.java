@@ -19,22 +19,79 @@
 
 package tagtime;
 
+import java.awt.Image;
+import java.awt.Toolkit;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class Main {
 	private static File dataDirectory;
+	private static File soundDirectory;
+	private static Image iconImage;
 	
 	public static void main(String[] args) {
 		//create the data directory, if needed
 		dataDirectory = new File("./data");
 		dataDirectory.mkdir();
 		
+		//create the sound directory, if needed
+		soundDirectory = new File("./sound");
+		if(soundDirectory.mkdir()) {
+			System.out.println("No sound directory found; a new " +
+						"directory has been created, but it will need " +
+						"to be populated before any sounds can be " +
+						"played. Directory location:");
+			System.out.println(soundDirectory.getAbsolutePath());
+		}
+		
+		//create the icon
+		iconImage = Toolkit.getDefaultToolkit().createImage("tray_icon.png");
+		
+		ArrayList<String> usernames = null;
 		if(args.length > 0) {
+			usernames = new ArrayList<String>(args.length);
+			for(String username : args) {
+				usernames.add(username);
+			}
+		} else {
+			//attempt to load the "usernames.txt" file
+			File usernameFile = new File("./usernames.txt");
+			
+			if(usernameFile.exists()) {
+				usernames = new ArrayList<String>();
+				try {
+					BufferedReader usernameReader = new BufferedReader(
+								new FileReader(usernameFile));
+					
+					usernames = new ArrayList<String>(1);
+					
+					for(String username = usernameReader.readLine(); username != null; username =
+								usernameReader.readLine()) {
+						usernames.add(username);
+					}
+				} catch(FileNotFoundException e) {
+					e.printStackTrace();
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			} else {
+				try {
+					usernameFile.createNewFile();
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		if(usernames != null) {
 			//if for any reason multiple people want to use TagTime on
 			//the same device at once, they can (though it would most
 			//likely be more trouble than it's worth)
-			for(String username : args) {
+			for(String username : usernames) {
 				runTagTime(username);
 			}
 		} else {
@@ -61,5 +118,16 @@ public class Main {
 	 */
 	public static File getDataDirectory() {
 		return dataDirectory;
+	}
+	
+	/**
+	 * @return A file object representing the sound directory.
+	 */
+	public static File getSoundDirectory() {
+		return soundDirectory;
+	}
+	
+	public static Image getIconImage() {
+		return iconImage;
 	}
 }

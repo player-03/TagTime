@@ -124,7 +124,15 @@ public enum SettingType {
 	 * submitted. The latter is more efficient, so it is recommended you
 	 * set this to true only if you manually edit your log file.
 	 */
-	OVERWRITE_ALL_DATA(Boolean.class, false);
+	OVERWRITE_ALL_DATA(Boolean.class, false),
+
+	/**
+	 * The sound file to play. This file should be located in the sound
+	 * directory. If no such file is found, no sound will be played, so
+	 * set this to any non-matching value (for example, by removing the
+	 * file extension) to disable the sound.
+	 */
+	SOUND_TO_PLAY(String.class, "whoosh.wav");
 	
 	/**
 	 * The type of value stored in this setting. For example, the

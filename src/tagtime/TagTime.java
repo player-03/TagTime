@@ -20,12 +20,10 @@
 package tagtime;
 
 import java.awt.AWTException;
-import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.MenuShortcut;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
-import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
@@ -63,7 +61,6 @@ public class TagTime {
 	public final Settings settings;
 	public final Log log;
 	
-	public final Image iconImage;
 	public final TrayIcon trayIcon;
 	
 	protected Scheduler scheduler;
@@ -165,9 +162,8 @@ public class TagTime {
 			popupMenu.add(submitMenuItem);
 			popupMenu.add(quitMenuItem);
 			
-			//create the tray icon and attempt to add it to the tray
-			iconImage = Toolkit.getDefaultToolkit().createImage("tray_icon.png");
-			trayIcon = new TrayIcon(iconImage, "TagTime (" + username + ")", popupMenu);
+			//create the tray icon
+			trayIcon = new TrayIcon(Main.getIconImage(), "TagTime (" + username + ")", popupMenu);
 		} else {
 			throw new ExceptionInInitializerError("System tray not supported; TagTime " +
 						"(currently) requires a system tray icon to function.");
