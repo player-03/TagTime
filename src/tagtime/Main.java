@@ -27,8 +27,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 public class Main {
+	private static final Pattern BEEMINDER_USERNAME_MATCHER = Pattern.compile("[a-z0-9]+");
+	
 	private static File dataDirectory;
 	private static File soundDirectory;
 	private static Image iconImage;
@@ -104,6 +107,11 @@ public class Main {
 	 * Creates and runs a new TagTime instance for the given user.
 	 */
 	private static void runTagTime(String username) {
+		if(username == null
+					|| !BEEMINDER_USERNAME_MATCHER.matcher(username).matches()) {
+			return;
+		}
+		
 		try {
 			TagTime instance = new TagTime(username);
 			instance.start();
