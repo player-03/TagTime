@@ -6,9 +6,9 @@ For more on the idea behind this project, see  [messymatters.com/tagtime](http:/
 
 This implementation is not packaged for distribution, but you should still be able to run it.
 
-0. Clone the repository on Github, or download and extract the zip file at http://www.box.com/s/rlcjzk9js02ptjva4mzv (the latter is easier, but it may not always be up to date).
+0. Clone the repository on Github, or download and extract the zip file at http://www.box.com/s/rlcjzk9js02ptjva4mzv (the latter is easier, but it may not always be up to date). Do not move the files around relative to one another, though feel free to move the directory they're in.
 1. Before running the app, open usernames.txt and replace "yourusernamehere" with your Beeminder username.
-2. Assuming you have Java installed, run the app by double-clicking TagTime.jar, or use "java -jar TagTime" to run it from the command line. (You may have to specify the complete filepath to java.exe, though.)
+2. Assuming you have Java installed, run the app by double-clicking TagTime.jar.
 3. If you want to change your settings, exit the app by right-clicking the icon in the system tray. Find your settings file in the newly-created data folder. Update your settings (see SettingType.java for documentation), and start the app again when you're done.
 4. Answer the pings! (Always answer with what it caught you at right at that moment.)
 
