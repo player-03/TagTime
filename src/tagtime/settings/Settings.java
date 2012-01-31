@@ -19,22 +19,13 @@
 
 package tagtime.settings;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.EnumSet;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
+
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 
 import tagtime.Main;
 import tagtime.util.TagCount;
@@ -51,9 +42,8 @@ public class Settings {
 	
 	/**
 	 * Returns the settings manager for the given user name.
-	 * @throws IOException if the settings file cannot be opened.
 	 */
-	public static Settings getInstance(String userName) throws IOException {
+	public static Settings getInstance(String userName) {
 		Settings instance = instances.get(userName);
 		
 		if(instance == null) {
@@ -71,29 +61,46 @@ public class Settings {
 	public final String username;
 	
 	/**
-	 * The setting variables, in a usable format.
+	 * The properties object used to store the settings.
 	 */
-	private final EnumMap<SettingType, Object> settingValues;
+	private final PropertiesConfiguration properties;
 	
 	/**
-	 * The file used to save the user's settings.
+	 * A persistent instance of the TagCount list, so that it doesn't
+	 * need to be rebuilt every time.
 	 */
-	private final File settingsFile;
+	private List<TagCount> tagCounts = null;
 	
 	/**
 	 * Creates a new settings manager for the given user.
-	 * @throws IOException if the settings file cannot be opened.
 	 */
-	private Settings(String userName) throws IOException {
+	private Settings(String userName) {
 		//setup
 		this.username = userName;
-		settingValues = new EnumMap<SettingType, Object>(SettingType.class);
+		//settingValues = new EnumMap<SettingType, Object>(SettingType.class);
+		
+		String fileLocation = Main.getDataDirectory().getPath()
+					+ "/" + userName + ".properties";
 		
 		//load the file
-		settingsFile = new File(Main.getDataDirectory().getPath()
-					+ "/" + userName + "_settings.txt");
+		PropertiesConfiguration tempProperties;
+		try {
+			tempProperties = new PropertiesConfiguration(fileLocation);
+		} catch(ConfigurationException e) {
+			//file not found
+			tempProperties = new PropertiesConfiguration();
+			
+			tempProperties.setPath(fileLocation);
+			try {
+				tempProperties.save();
+			} catch(ConfigurationException e1) {
+				e1.printStackTrace();
+			}
+		}
 		
-		if(settingsFile.exists()) {
+		properties = tempProperties;
+		
+		/*if(settingsFile.exists()) {
 			//read the save file and load the settings
 			BufferedReader in = new BufferedReader(new FileReader(settingsFile));
 			readInSettings(in);
@@ -104,14 +111,14 @@ public class Settings {
 		} else {
 			applyDefaultSettings();
 			flush();
-		}
+		}*/
 	}
 	
 	/**
 	 * Reads lines from the given settings file and determines the
 	 * settings accordingly.
 	 */
-	private void readInSettings(BufferedReader in) {
+	/*private void readInSettings(BufferedReader in) {
 		String currentLine;
 		StringBuffer currentData = new StringBuffer();
 		
@@ -184,13 +191,13 @@ public class Settings {
 		}
 		
 		applyDefaultSettings();
-	}
-	
+	}*/
+
 	/**
 	 * If any settings are left undefined, inserts the default value for
 	 * those settings.
 	 */
-	private void applyDefaultSettings() {
+	/*private void applyDefaultSettings() {
 		for(SettingType type : EnumSet.allOf(SettingType.class)) {
 			if(!settingValues.containsKey(type)) {
 				if(type.defaultValue != null) {
@@ -204,16 +211,20 @@ public class Settings {
 					settingValues.put(type, extractData(type, ""));
 				}
 			}
+
+			if(properties.getProperty(type.toString()) == null) {
+				properties.setProperty(type.toString(), extractData(type, "").toString());
+			}
 		}
-	}
-	
+	}*/
+
 	/**
 	 * Parses the given data string, returning the object it represents.
 	 * @param type The type of object to return.
 	 * @param substring The data to parse.
 	 * @return The parsed object, or null if type wasn't recognized.
 	 */
-	private Object extractData(SettingType type, String data) {
+	/*private Object extractData(SettingType type, String data) {
 		//most settings are numbers, strings, or booleans
 		if(type.valueClass == int.class || type.valueClass == Integer.class) {
 			try {
@@ -277,97 +288,84 @@ public class Settings {
 		System.err.println("Setting type " + type + " unaccounted for.");
 		
 		return null;
-	}
-	
+	}*/
+
 	/**
 	 * Writes the user's settings to the save file.
 	 */
 	public void flush() {
-		BufferedWriter out;
-		
-		try {
-			settingsFile.delete();
-			out = new BufferedWriter(new FileWriter(settingsFile, false));
-		} catch(Exception e) {
-			e.printStackTrace();
-			return;
-		}
-		
-		StringBuffer output = new StringBuffer();
-		
-		for(Entry<SettingType, Object> entry : settingValues.entrySet()) {
-			output.append(entry.getKey().toString());
-			
-			output.append(' ');
-			
-			output.append(entry.getValue().toString());
-			
-			output.append('\n');
+		if(tagCounts != null) {
+			List<String> tagCountsAsStrings = new ArrayList<String>(tagCounts.size());
+			for(TagCount tagCount : tagCounts) {
+				tagCountsAsStrings.add(tagCount.toString());
+			}
+			properties.setProperty(SettingType.CACHED_TAGS.toString(),
+						tagCountsAsStrings);
 		}
 		
 		try {
-			out.write(output.toString());
-			out.flush();
-		} catch(IOException e) {
+			properties.save();
+		} catch(ConfigurationException e) {
 			e.printStackTrace();
 		}
-		
-		try {
-			out.close();
-		} catch(IOException e) {}
 	}
 	
-	/**
-	 * Returns the value of the given setting.
-	 */
-	public Object getValue(SettingType setting) {
-		return settingValues.get(setting);
+	public int getIntValue(SettingType setting) {
+		assert setting.valueClass == int.class;
+		
+		return properties.getInt(setting.toString(),
+						(Integer) setting.defaultValue);
+	}
+	
+	public boolean getBooleanValue(SettingType setting) {
+		assert setting.valueClass == boolean.class;
+		
+		return properties.getBoolean(setting.toString(),
+						(Boolean) setting.defaultValue);
+	}
+	
+	public String getStringValue(SettingType setting) {
+		assert setting.valueClass == String.class;
+		
+		return properties.getString(setting.toString(),
+						(String) setting.defaultValue);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List<String> getListValue(SettingType setting) {
+		assert setting.valueClass == List.class;
+		
+		return properties.getList(setting.toString(),
+							new ArrayList<String>());
+	}
+	
+	public List<TagCount> getTagCounts(SettingType setting) {
+		if(tagCounts == null) {
+			List<String> list = getListValue(setting);
+			tagCounts = new ArrayList<TagCount>(list.size());
+			for(String s : list) {
+				tagCounts.add(new TagCount(s));
+			}
+		}
+		
+		Collections.sort(tagCounts);
+		
+		return tagCounts;
 	}
 	
 	/**
 	 * Sets the value of the given setting.
 	 */
 	public void setValue(SettingType setting, Object value) {
-		settingValues.put(setting, value);
+		properties.setProperty(setting.toString(), value);
 	}
 	
-	/**
-	 * For settings that consist of a collection of values, adds the
-	 * given values to the collection.
-	 */
-	@SuppressWarnings("unchecked")
-	public void addMultipleToCollection(SettingType setting,
-										Collection<? extends Object> values) {
-		Object collection = settingValues.get(setting);
-		
-		try {
-			((Collection<Object>) collection).addAll(values);
-		} catch(Exception e) {
-			//wrong object type
-			e.printStackTrace();
-			return;
-		}
-	}
-	
-	/**
-	 * For settings that consist of a set of TagCounts, adds the given
-	 * values to the set, or, if they already exist, increments their
-	 * count variable.
-	 */
-	@SuppressWarnings("unchecked")
-	public void incrementCounts(SettingType setting,
-								List<? extends String> values) {
-		Set<TagCount> collection;
-		try {
-			collection = (Set<TagCount>) settingValues.get(setting);
-		} catch(Exception e) {
-			//wrong object type
-			e.printStackTrace();
-			return;
-		}
+	public void incrementTagCounts(SettingType setting,
+							List<? extends String> values) {
+		List<TagCount> tagCounts = getTagCounts(setting);
 		
 		//this is inefficient, but I can't think of a better working alternative
-		for(TagCount tC : collection) {
+		for(TagCount tC : tagCounts) {
 			if(values.contains(tC.getTag())) {
 				tC.increment();
 				
@@ -376,7 +374,7 @@ public class Settings {
 		}
 		
 		for(String newTag : values) {
-			collection.add(new TagCount(newTag, 1));
+			tagCounts.add(new TagCount(newTag));
 		}
 	}
 }

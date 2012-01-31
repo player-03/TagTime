@@ -26,13 +26,21 @@ package tagtime.util;
 public class TagCount implements Comparable<TagCount> {
 	private final String tag;
 	private final String lowercaseTag;
-	private int count;
+	private int count = 1;
 	
-	public TagCount(String tag, int count) {
+	public TagCount(String tag) {
 		assert tag != null;
 		
-		this.tag = tag;
-		this.count = count;
+		int delimIndex = tag.indexOf(':');
+		if(delimIndex < 0) {
+			delimIndex = tag.length();
+		}
+		
+		this.tag = tag.substring(0, delimIndex);
+		
+		try {
+			count = Integer.parseInt(tag.substring(delimIndex + 1));
+		} catch(Exception e) {}
 		
 		lowercaseTag = tag.toLowerCase();
 	}

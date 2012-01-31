@@ -33,6 +33,7 @@ import java.awt.event.TextListener;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -72,15 +73,15 @@ public class PingWindow extends JFrame implements ActionListener {
 	
 	private PingJob ownerJob;
 	
-	public PingWindow(TagTime tagTimeInstance, PingJob ownerJob, Object[] tagCounts) {
+	public PingWindow(TagTime tagTimeInstance, PingJob ownerJob, List<TagCount> tagCounts) {
 		//create the window
 		super("Pinging " + tagTimeInstance.username + " - TagTime");
 		
 		this.tagTimeInstance = tagTimeInstance;
 		
 		setIconImage(Main.getIconImage());
-		setLocation((Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_X),
-					(Integer) tagTimeInstance.settings.getValue(SettingType.WINDOW_Y));
+		setLocation(tagTimeInstance.settings.getIntValue(SettingType.WINDOW_X),
+					tagTimeInstance.settings.getIntValue(SettingType.WINDOW_Y));
 		
 		//record the job that created this window
 		this.ownerJob = ownerJob;
@@ -93,16 +94,16 @@ public class PingWindow extends JFrame implements ActionListener {
 		submitButton.addActionListener(this);
 		
 		//convert the given list of TagCount objects to a list of strings
-		String[] cachedTags = new String[tagCounts.length];
+		String[] cachedTags = new String[tagCounts.size()];
 		for(int i = cachedTags.length - 1; i >= 0; i--) {
-			cachedTags[i] = ((TagCount) tagCounts[i]).getTag();
+			cachedTags[i] = tagCounts.get(i).getTag();
 		}
 		
 		//set up the list of previously-submitted tags
 		quickTags = new JList(cachedTags);
 		quickTags.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		quickTags.setVisibleRowCount((Integer) tagTimeInstance.settings
-					.getValue(SettingType.CACHED_TAGS_VISIBLE));
+		quickTags.setVisibleRowCount(tagTimeInstance.settings
+					.getIntValue(SettingType.CACHED_TAGS_VISIBLE));
 		quickTags.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -196,7 +197,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		if(b) {
 			//focus on this window and the input text only if the window
 			//is allowed to steal focus
-			if((Boolean) tagTimeInstance.settings.getValue(SettingType.STEAL_FOCUS)) {
+			if(tagTimeInstance.settings.getBooleanValue(SettingType.STEAL_FOCUS)) {
 				super.setVisible(true);
 				inputText.requestFocus();
 			} else {
@@ -218,7 +219,7 @@ public class PingWindow extends JFrame implements ActionListener {
 	 */
 	private void playSound() {
 		File soundFile = new File(Main.getSoundDirectory() + "/"
-					+ ((String) tagTimeInstance.settings.getValue(SettingType.SOUND_TO_PLAY)));
+					+ tagTimeInstance.settings.getStringValue(SettingType.SOUND_TO_PLAY));
 		
 		if(!soundFile.exists()) {
 			return;

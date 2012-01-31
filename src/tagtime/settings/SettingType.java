@@ -19,7 +19,7 @@
 
 package tagtime.settings;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.TreeSet;
 
 /**
@@ -108,7 +108,7 @@ public enum SettingType {
 	 * graph.
 	 * </p>
 	 */
-	BEEMINDER_GRAPHS(HashSet.class, null),
+	BEEMINDER_GRAPHS(List.class, null),
 
 	/**
 	 * The base url to send data to. Use "http://beta.beeminder.com" to
@@ -116,6 +116,12 @@ public enum SettingType {
 	 * for local testing.
 	 */
 	SUBMISSION_URL(String.class, "http://beta.beeminder.com"),
+
+	/**
+	 * The number of digits of precision to use when submitting time in
+	 * hours.
+	 */
+	PRECISION(int.class, 2),
 
 	/**
 	 * Specifies which behavior is desired when submitting data to

@@ -38,9 +38,8 @@ public class BeeminderAPI {
 		
 		String username = tagTimeInstance.username;
 		
-		@SuppressWarnings("unchecked")
-		Collection<String> graphDataEntries = (Collection<String>) userSettings
-					.getValue(SettingType.BEEMINDER_GRAPHS);
+		Collection<String> graphDataEntries = userSettings
+					.getListValue(SettingType.BEEMINDER_GRAPHS);
 		
 		graphData = new ArrayList<BeeminderGraphData>(graphDataEntries.size());
 		for(String dataEntry : graphDataEntries) {

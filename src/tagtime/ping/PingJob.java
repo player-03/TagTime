@@ -21,7 +21,7 @@ package tagtime.ping;
 
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.TreeSet;
+import java.util.List;
 
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -48,28 +48,26 @@ public class PingJob implements Job {
 	}
 	
 	@Override
-	@SuppressWarnings("unchecked")
 	public void execute(JobExecutionContext context) {
 		tagTimeInstance = (TagTime) context.getJobDetail().getJobDataMap()
 									.getWrappedMap().get(TagTime.TAG_TIME_INSTANCE);
 		assert tagTimeInstance != null;
 		
-		Object cachedTags = tagTimeInstance.settings.getValue(SettingType.CACHED_TAGS);
-		window = new PingWindow(tagTimeInstance, this, ((TreeSet<TagCount>) cachedTags).toArray());
-		
-		scheduledTime = context.getScheduledFireTime().getTime();
-		
 		if(context.getPreviousFireTime() == null) {
 			//the first job is run immediately at the start of the
 			//session, but this doesn't match the actual time it should
 			//have been run, so skip it
-			dataLogged = true;
-			window.dispose();
 			return;
 		}
 		
-		long windowTimeout = ((Integer) tagTimeInstance.settings
-							.getValue(SettingType.WINDOW_TIMEOUT)) * 1000;
+		List<TagCount> cachedTags =
+					tagTimeInstance.settings.getTagCounts(SettingType.CACHED_TAGS);
+		window = new PingWindow(tagTimeInstance, this, cachedTags);
+		
+		scheduledTime = context.getScheduledFireTime().getTime();
+		
+		long windowTimeout = (tagTimeInstance.settings
+							.getIntValue(SettingType.WINDOW_TIMEOUT)) * 1000;
 		
 		//if this job was executed too long after it was scheduled,
 		//log it as "afk off RETRO"
@@ -118,7 +116,7 @@ public class PingJob implements Job {
 			dataLogged = true;
 			
 			tagTimeInstance.log.log(scheduledTime, tags);
-			tagTimeInstance.settings.incrementCounts(SettingType.CACHED_TAGS,
+			tagTimeInstance.settings.incrementTagCounts(SettingType.CACHED_TAGS,
 						new LinkedList<String>(Arrays.asList(tags.split(" "))));
 		}
 	}

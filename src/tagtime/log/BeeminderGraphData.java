@@ -26,21 +26,26 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
+import java.io.InputStreamReader;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
 
 import tagtime.Main;
 import tagtime.TagTime;
@@ -67,10 +72,10 @@ public class BeeminderGraphData {
 				Pattern.compile("[^\\]\\s,\\-][^\\]\\s,]+");
 	
 	/**
-	 * Submit time spent as hours, rounded to two decimal places.
+	 * Submit time spent as hours, rounded to the given number of decimal
+	 * places.
 	 */
-	private static final DecimalFormat hourFormatter =
-										new DecimalFormat("#.##");
+	private final DecimalFormat hourFormatter;
 	
 	public final TagTime tagTimeInstance;
 	
@@ -82,7 +87,7 @@ public class BeeminderGraphData {
 	/**
 	 * The url of the Beeminder graph.
 	 */
-	private URL graphURL;
+	private String graphURL;
 	
 	/**
 	 * The tags that are accepted to this graph. At least one of these
@@ -110,6 +115,13 @@ public class BeeminderGraphData {
 	private final File beeFile;
 	
 	/**
+	 * Whether this will overwrite the data as it submits it. This is
+	 * final for now because changing it would also mean the URL would
+	 * need to be changed.
+	 */
+	private final boolean overwriteAllData;
+	
+	/**
 	 * Parses a graph's data and sets up a .bee file to track which tags
 	 * have been submitted to the graph.
 	 * @param username The user's Beeminder username.
@@ -124,10 +136,14 @@ public class BeeminderGraphData {
 		
 		this.tagTimeInstance = tagTimeInstance;
 		
-		//the URL will be determined based on whether the data is to be
-		//overwritten
-		boolean overwriteAllData = (Boolean) tagTimeInstance.settings
-													.getValue(SettingType.OVERWRITE_ALL_DATA);
+		hourFormatter = new DecimalFormat();
+		hourFormatter.setMaximumIntegerDigits(tagTimeInstance.settings
+					.getIntValue(SettingType.PRECISION));
+		
+		//the URL and data submitted will be determined based on whether
+		//the data is to be overwritten
+		overwriteAllData = tagTimeInstance.settings
+							.getBooleanValue(SettingType.OVERWRITE_ALL_DATA);
 		
 		//find the graph url
 		int graphDelim = dataEntry.indexOf('|');
@@ -136,17 +152,15 @@ public class BeeminderGraphData {
 						"format \"graphname|tags\"");
 		}
 		graphName = dataEntry.substring(0, graphDelim);
-		try {
-			graphURL = new URL((String) tagTimeInstance.settings.getValue(SettingType.SUBMISSION_URL) +
-						"/" + username +
-						"/goals/" +
-						graphName +
-						"/datapoints/" +
-						(overwriteAllData ? "tagtime_update" : "create_all"));
-		} catch(MalformedURLException e) {
-			e.printStackTrace();
-			graphURL = null;
-		}
+		
+		graphURL = tagTimeInstance.settings
+								.getStringValue(SettingType.SUBMISSION_URL)
+								+
+								"/" + username +
+								"/goals/" +
+								graphName +
+								"/datapoints/" +
+								(overwriteAllData ? "tagtime_update" : "create_all");
 		
 		//get the tags
 		String[] tags = dataEntry.substring(graphDelim + 1).split("\\s+");
@@ -361,32 +375,64 @@ public class BeeminderGraphData {
 			return;
 		}
 		
-		//combine all data to be submitted into a single string
-		boolean firstEntry = true;
-		StringBuffer data = new StringBuffer("origin=tgt");
-		if(!(Boolean) tagTimeInstance.settings.getValue(SettingType.OVERWRITE_ALL_DATA)) {
+		/*StringBuffer data = new StringBuffer("origin=tgt");
+		if(!tagTimeInstance.settings.getBooleanValue(SettingType.OVERWRITE_ALL_DATA)) {
 			data.append("&sendmail=false");
 		}
-		data.append("&datapoints_text=");
+		data.append("&datapoints_text=");*/
+
+		//
+		List<NameValuePair> postData = new ArrayList<NameValuePair>(
+					overwriteAllData ? 2 : 3);
+		postData.add(new BasicNameValuePair("origin", "tgt"));
+		if(!overwriteAllData) {
+			postData.add(new BasicNameValuePair("sendmail", "false"));
+		}
+		
+		//encode the data to be submitted
+		boolean firstEntry = true;
+		StringBuffer data = new StringBuffer();
 		for(Entry<String, Long> dataToSubmit : timeToSubmit.entrySet()) {
 			if(dataToSubmit.getValue() <= 0) {
 				continue;
 			}
 			
-			try {
-				data.append(URLEncoder.encode((firstEntry ? "" : "\n") +
-							dataToSubmit.getKey() + " " +
-							hourFormatter.format((double) dataToSubmit.getValue() / 3600),
-												"UTF-8"));
-				firstEntry = false;
-			} catch(UnsupportedEncodingException e) {
-				e.printStackTrace();
-				return;
-			}
+			data.append((firstEntry ? "" : "\n") +
+						dataToSubmit.getKey() + " " +
+						hourFormatter.format((double) dataToSubmit.getValue() / 3600));
+			firstEntry = false;
+		}
+		postData.add(new BasicNameValuePair("datapoints_text", data.toString()));
+		
+		//build the request
+		HttpClient client = new DefaultHttpClient();
+		HttpPost postRequest = new HttpPost(graphURL);
+		HttpResponse response;
+		
+		try {
+			UrlEncodedFormEntity entity = new UrlEncodedFormEntity(postData);
+			System.out.println("Sending request: "
+						+ new BufferedReader(new InputStreamReader(entity.getContent()))
+									.readLine());
+			System.out.println("To url: " + graphURL);
+			
+			postRequest.setEntity(entity);
+			
+			response = client.execute(postRequest);
+		} catch(Exception e) {
+			e.printStackTrace();
+			System.err.println("Unable to submit your data to Beeminder " +
+						"graph " + graphName + ". Please try again later.");
+			return;
 		}
 		
+		StatusLine status = response.getStatusLine();
+		
+		System.out.println("Response: " + status.getStatusCode()
+					+ " " + status.getReasonPhrase());
+		
 		//submit the data
-		try {
+		/*try {
 			//open the connection
 			HttpURLConnection connection = (HttpURLConnection) graphURL.openConnection();
 			
@@ -402,8 +448,6 @@ public class BeeminderGraphData {
 			
 			out.close();
 			
-			//For debugging:
-			System.out.println("Request: " + graphURL.toString() + "?" + data.toString());
 			System.out.println("Response: " + connection.getResponseCode() +
 						" " + connection.getResponseMessage());
 		} catch(Exception e) {
@@ -411,26 +455,28 @@ public class BeeminderGraphData {
 			System.err.println("Unable to submit your data to Beeminder " +
 						"graph " + graphName + ". Please try again later.");
 			return;
-		}
-		
-		//record the submitted data
-		try {
-			BufferedWriter beeFileOut = new BufferedWriter(new FileWriter(beeFile));
-			
-			for(Long pingTime : pingsSubmitted) {
-				beeFileOut.write(pingTime.toString() + "\n");
+		}*/
+
+		//record the submitted data, if the response indicated success
+		if(status.getStatusCode() == 302 || status.getStatusCode() == 200) {
+			try {
+				BufferedWriter beeFileOut = new BufferedWriter(new FileWriter(beeFile));
+				
+				for(Long pingTime : pingsSubmitted) {
+					beeFileOut.write(pingTime.toString() + "\n");
+				}
+				
+				beeFileOut.flush();
+			} catch(IOException e) {
+				System.err.println("Unable to record which data points were " +
+							"submitted. This may cause those data points to " +
+							"be submitted again next time. To prevent the " +
+							"creation of duplicate values, OVERWRITE_ALL_DATA " +
+							"will be set to true. (Feel free to undo this " +
+							"after you submit successfully.)");
+				
+				tagTimeInstance.settings.setValue(SettingType.OVERWRITE_ALL_DATA, true);
 			}
-			
-			beeFileOut.flush();
-		} catch(IOException e) {
-			System.err.println("Unable to record which data points were " +
-						"submitted. This may cause those data points to " +
-						"be submitted again next time. To prevent the " +
-						"creation of duplicate values, OVERWRITE_ALL_DATA " +
-						"will be set to true. (Feel free to undo this " +
-						"after you submit successfully.)");
-			
-			tagTimeInstance.settings.setValue(SettingType.OVERWRITE_ALL_DATA, true);
 		}
 	}
 }

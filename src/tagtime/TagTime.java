@@ -87,7 +87,7 @@ public class TagTime {
 		
 		api = new BeeminderAPI(this, settings);
 		
-		String rngKey = (String) settings.getValue(SettingType.RNG_KEY);
+		String rngKey = settings.getStringValue(SettingType.RNG_KEY);
 		
 		try {
 			//define a job
@@ -101,7 +101,7 @@ public class TagTime {
 			//set up the trigger and schedule for the job
 			RandomizedScheduleBuilder scheduleBuilder =
 						RandomizedScheduleBuilder.repeatMinutelyForever(
-										(Integer) settings.getValue(SettingType.AVERAGE_GAP))
+										settings.getIntValue(SettingType.AVERAGE_GAP))
 									.withRNGKey(rngKey)
 									.withMisfireHandlingInstructionIgnoreMisfires();
 			trigger = (RandomizedTrigger) TriggerBuilder.newTrigger()
@@ -118,7 +118,7 @@ public class TagTime {
 		}
 		
 		//if the RNG key wasn't defined, save the automatically-generated one
-		if(rngKey.equals("")) {
+		if(rngKey == null || rngKey.equals("")) {
 			settings.setValue(SettingType.RNG_KEY, trigger.getRNGKey());
 		}
 		
@@ -251,7 +251,11 @@ public class TagTime {
 		
 		System.out.println("Bye, " + username + "!");
 		
-		//if this was the final TagTime object, the application should
+		//if this was the final TagTime instance, the application should
 		//exit at this point
+		
+		//unfortunately, quitting from one instance causes the others not
+		//to be able to quit, so exit all of them for now
+		System.exit(0);
 	}
 }
