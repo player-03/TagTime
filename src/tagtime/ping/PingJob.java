@@ -33,8 +33,8 @@ import tagtime.util.TagCount;
 
 /**
  * A job that gets executed by the Quartz scheduler when it is time to
- * ping the user. This does little more than create and display a
- * PingWindow.
+ * ping the user. This creates and displays a ping window, then hides it
+ * if it times out.
  */
 public class PingJob implements Job {
 	private TagTime tagTimeInstance;

@@ -19,17 +19,16 @@
 
 package tagtime.ping;
 
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.TextArea;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.TextEvent;
-import java.awt.event.TextListener;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
@@ -42,15 +41,16 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import tagtime.Main;
 import tagtime.TagTime;
@@ -68,7 +68,10 @@ public class PingWindow extends JFrame implements ActionListener {
 	private static final String SUBMIT = "Submit";
 	private static final String CANCEL = "Cancel";
 	
-	final TextArea inputText;
+	private static final int GRID_WIDTH = 3;
+	private static final Insets ZERO_INSETS = new Insets(0, 0, 0, 0);
+	
+	final JTextArea inputText;
 	final JList quickTags;
 	
 	private PingJob ownerJob;
@@ -86,9 +89,17 @@ public class PingWindow extends JFrame implements ActionListener {
 		//record the job that created this window
 		this.ownerJob = ownerJob;
 		
-		//set up the buttons
+		//set up the root pane
+		JRootPane root = getRootPane();
+		//root.setLayout(new BoxLayout(root, BoxLayout.PAGE_AXIS));
+		root.setLayout(new GridBagLayout());
+		root.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+		GridBagConstraints constraints = new GridBagConstraints();
+		
+		//define the cancel and submit buttons
 		final JButton cancelButton = new JButton(CANCEL);
 		cancelButton.addActionListener(this);
+		
 		final JButton submitButton = new JButton(SUBMIT);
 		submitButton.setActionCommand(SUBMIT);
 		submitButton.addActionListener(this);
@@ -99,11 +110,13 @@ public class PingWindow extends JFrame implements ActionListener {
 			cachedTags[i] = tagCounts.get(i).getTag();
 		}
 		
+		Dimension windowSize = new Dimension(
+					tagTimeInstance.settings.getIntValue(SettingType.WINDOW_WIDTH),
+					tagTimeInstance.settings.getIntValue(SettingType.WINDOW_HEIGHT));
+		
 		//set up the list of previously-submitted tags
 		quickTags = new JList(cachedTags);
 		quickTags.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		quickTags.setVisibleRowCount(tagTimeInstance.settings
-					.getIntValue(SettingType.CACHED_TAGS_VISIBLE));
 		quickTags.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -115,59 +128,91 @@ public class PingWindow extends JFrame implements ActionListener {
 		JScrollPane listDisplay = new JScrollPane(quickTags);
 		
 		//set up the input text field
-		inputText = new TextArea("", 0, 0, TextArea.SCROLLBARS_NONE);
-		inputText.setMinimumSize(new Dimension(200, 15));
-		inputText.setPreferredSize(new Dimension(300, 30));
-		inputText.setEditable(true);
-		inputText.addTextListener(new TextListener() {
+		inputText = new JTextArea();
+		inputText.setRows(2);
+		inputText.setLineWrap(true);
+		inputText.setWrapStyleWord(true);
+		inputText.getDocument().addDocumentListener(new DocumentListener() {
 			@Override
-			public void textValueChanged(TextEvent e) {
+			public void removeUpdate(DocumentEvent e) {
 				//the submit button should be enabled if and only if text
 				//has been entered
 				submitButton.setEnabled(inputText.getText().length() > 0);
 			}
+			
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				submitButton.setEnabled(true);
+			}
+			
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				//this doesn't seem to be called at any time
+				System.out.println("changedUpdate()");
+			}
 		});
 		
+		//put the input text in a scrolling area
+		JScrollPane inputTextScrollPane = new JScrollPane(inputText);
+		Dimension inputTextDimension = new Dimension(windowSize.width,
+					2 * getFontMetrics(inputText.getFont()).getHeight());
+		inputTextScrollPane.setMinimumSize(inputTextDimension);
+		inputTextScrollPane.setMaximumSize(inputTextDimension);
+		inputTextScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		
 		//create the heading text
-		JLabel text = new JLabel("<html>It's tag time! What are you doing <i>right now</i>?");
-		text.setAlignmentX(JLabel.LEADING);
+		JLabel label = new JLabel("<html>It's tag time! " +
+							"What are you doing <i>right now</i>?</html>");
 		
-		//HACK: for some reason, without these settings, the label will
-		//get cut off way too early
-		//TODO: Find a more reliable way of getting the formatting right
-		text.setMinimumSize(new Dimension(1400, 20));
-		text.setPreferredSize(text.getMinimumSize());
+		//place the components
 		
-		//add the buttons to their own pane, from left to right
-		JPanel buttonPane = new JPanel();
-		buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
-		//"horizontal glue" will push the buttons to the right
-		buttonPane.add(Box.createHorizontalGlue());
-		buttonPane.add(submitButton);
-		buttonPane.add(Box.createRigidArea(new Dimension(8, 0)));
-		buttonPane.add(cancelButton);
+		//the label goes across the top
+		resetConstraints(constraints);
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridwidth = GRID_WIDTH;
+		constraints.insets = new Insets(0, 0, 8, 0);
+		root.add(label, constraints);
 		
-		//add the components, from top to bottom
-		JRootPane root = getRootPane();
-		root.setLayout(new BoxLayout(root, BoxLayout.PAGE_AXIS));
-		root.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+		//the list goes below the label, goes all the way across,
+		//and is the only one with vertical weight
+		resetConstraints(constraints);
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.gridy = 1;
+		constraints.gridwidth = GRID_WIDTH;
+		constraints.weighty = 1;
+		constraints.insets = new Insets(0, 0, 3, 0);
+		root.add(listDisplay, constraints);
 		
-		root.add(text);
-		root.add(Box.createRigidArea(new Dimension(0, 5)));
-		root.add(listDisplay);
-		root.add(Box.createRigidArea(new Dimension(0, 3)));
-		root.add(inputText);
-		root.add(Box.createRigidArea(new Dimension(0, 5)));
-		root.add(buttonPane);
+		//the input text goes below the list
+		resetConstraints(constraints);
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.gridy = 2;
+		constraints.gridwidth = GRID_WIDTH;
+		constraints.insets = new Insets(0, 0, 5, 0);
+		root.add(inputTextScrollPane, constraints);
 		
-		int windowHeight = 0;
+		//the cancel button goes in the bottom right
+		resetConstraints(constraints);
+		constraints.gridx = GRID_WIDTH - 1;
+		constraints.gridy = 3;
+		constraints.weightx = 0;
+		root.add(cancelButton, constraints);
 		
-		for(int i = root.getComponentCount() - 1; i >= 0; i--) {
-			Component component = root.getComponent(i);
-			windowHeight += component.getPreferredSize().height;
-		}
+		//the submit button goes next to the cancel button
+		resetConstraints(constraints);
+		constraints.gridx = GRID_WIDTH - 2;
+		constraints.gridy = 3;
+		constraints.weightx = 0;
+		constraints.insets = new Insets(0, 0, 0, 8);
+		root.add(submitButton, constraints);
 		
-		setSize(350, Math.max(300, windowHeight));
+		//an invisible box goes next to the submit and cancel buttons,
+		//to push them to the side
+		resetConstraints(constraints);
+		constraints.gridy = 3;
+		root.add(Box.createRigidArea(new Dimension(3, 3)), constraints);
+		
+		setSize(windowSize);
 		
 		//the submit button is selected when the user presses enter, but
 		//only if it's enabled, and it doesn't get enabled until the user
@@ -178,14 +223,34 @@ public class PingWindow extends JFrame implements ActionListener {
 		//clean up when closed
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		
-		//if the user moves this window, record the new location
+		//if the user moves/resizes this window, record the new location/size
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentMoved(ComponentEvent e) {
 				PingWindow.this.tagTimeInstance.settings.setValue(SettingType.WINDOW_X, getX());
 				PingWindow.this.tagTimeInstance.settings.setValue(SettingType.WINDOW_Y, getY());
 			}
+			
+			@Override
+			public void componentResized(ComponentEvent e) {
+				PingWindow.this.tagTimeInstance.settings.setValue(SettingType.WINDOW_WIDTH,
+							getWidth());
+				PingWindow.this.tagTimeInstance.settings.setValue(SettingType.WINDOW_HEIGHT,
+							getHeight());
+			}
 		});
+	}
+	
+	private void resetConstraints(GridBagConstraints constraints) {
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.gridwidth = 1;
+		constraints.gridheight = 1;
+		constraints.weightx = 1;
+		constraints.weighty = 0;
+		constraints.fill = GridBagConstraints.NONE;
+		constraints.anchor = GridBagConstraints.EAST;
+		constraints.insets = ZERO_INSETS;
 	}
 	
 	@Override
@@ -274,7 +339,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		super.dispose();
 	}
 	
-	void addSelectedTag() {
+	protected void addSelectedTag() {
 		Object selectedValue = quickTags.getSelectedValue();
 		String currentText = inputText.getText();
 		

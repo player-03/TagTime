@@ -458,7 +458,7 @@ public class BeeminderGraphData {
 		}*/
 
 		//record the submitted data, if the response indicated success
-		if(status.getStatusCode() == 302 || status.getStatusCode() == 200) {
+		if(status.getStatusCode() >= 200 && status.getStatusCode() <= 399) {
 			try {
 				BufferedWriter beeFileOut = new BufferedWriter(new FileWriter(beeFile));
 				

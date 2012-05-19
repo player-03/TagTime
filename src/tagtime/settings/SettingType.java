@@ -44,12 +44,6 @@ public enum SettingType {
 	CACHED_TAGS(TreeSet.class, null),
 
 	/**
-	 * The cached tags display/selection window will be tall enough to
-	 * display this many tags.
-	 */
-	CACHED_TAGS_VISIBLE(int.class, 8),
-
-	/**
 	 * The x position of the user's preferred window location.
 	 */
 	WINDOW_X(int.class, 20),
@@ -58,6 +52,16 @@ public enum SettingType {
 	 * The y position of the user's preferred window location.
 	 */
 	WINDOW_Y(int.class, 20),
+
+	/**
+	 * The user's preferred window width.
+	 */
+	WINDOW_WIDTH(int.class, 350),
+
+	/**
+	 * The user's preferred window height.
+	 */
+	WINDOW_HEIGHT(int.class, 400),
 
 	/**
 	 * Whether ping windows should attempt to steal focus from other
