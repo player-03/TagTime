@@ -143,7 +143,9 @@ public class BeeminderAPI {
 										(Double) jsonDataPoint.get("value"),
 										(String) jsonDataPoint.get("comment"));
 				
-				//insert the new data point such that all data points are in order
+				//insert the new data point such that all data points are
+				//in order, iterating backwards so that the most common
+				//case (already being in order) is handled fastest
 				if(prevDataPoint != null && prevDataPoint.timestamp > dataPoint.timestamp) {
 					for(insertIndex = dataPoints.size() - 2; insertIndex >= 0; insertIndex--) {
 						if(dataPoints.get(insertIndex).timestamp <= dataPoint.timestamp) {

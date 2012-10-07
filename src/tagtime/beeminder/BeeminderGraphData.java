@@ -20,8 +20,10 @@
 package tagtime.beeminder;
 
 import java.io.File;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.client.HttpClient;
@@ -37,7 +39,8 @@ import tagtime.util.TagMatcher;
  * actual parsing and submission of data.
  */
 public class BeeminderGraphData {
-	private static final String RESET_STRING = "Reset today";
+	private static final List<String> RESET_STRINGS =
+				Arrays.asList(new String[] {"Reset today", "Unfroze today"});
 	
 	/**
 	 * Submit time spent as hours, rounded to the given number of decimal
@@ -81,7 +84,9 @@ public class BeeminderGraphData {
 		int decimalDigits = tagTimeInstance.settings
 					.getIntValue(SettingType.PRECISION);
 		hourFormatter = new DecimalFormat();
-		hourFormatter.setMaximumIntegerDigits(decimalDigits);
+		hourFormatter.setGroupingUsed(false);
+		hourFormatter.setRoundingMode(RoundingMode.HALF_UP);
+		hourFormatter.setMaximumFractionDigits(decimalDigits);
 		roundingMultiplier = (int) Math.pow(10, decimalDigits);
 		
 		//find the graph name
@@ -133,31 +138,41 @@ public class BeeminderGraphData {
 			return;
 		}
 		
-		long resetDate = beeminderDataPoints.get(0).timestamp;
-		/*BeeminderAPI.fetchResetDate(client, graphName,
-					tagTimeInstance);
-		resetDate = DataPoint.getStartOfDay(resetDate);*/
-
+		long resetDate = Math.max(beeminderDataPoints.get(0).timestamp,
+					BeeminderAPI.fetchResetDate(client, graphName,
+								tagTimeInstance));
+		resetDate = DataPoint.getStartOfDay(resetDate);
+		
 		//check the Beeminder list for data points that fall on the same
 		//day, and mark those data points as needing to be merged (the
 		//first point gets marked as needing to be removed, and the
 		//second gets marked as needing to be updated)
 		if(beeminderDataPoints.size() > 1) {
-			//iterate through, checking i and i-1, but skip the first
-			//data point
-			for(int i = 2; i < beeminderDataPoints.size(); i++) {
+			for(int i = 1; i < beeminderDataPoints.size(); i++) {
 				beeminderDataPoint = beeminderDataPoints.get(i);
 				
 				//Special case: each time the graph is reset, Beeminder
 				//adds a "Reset today" data point. Do not remove these,
 				//and use them to set the reset date if necessary.
-				if(beeminderDataPoint.comment.equals(RESET_STRING)) {
+				if(RESET_STRINGS.contains(beeminderDataPoint.comment)) {
 					if(beeminderDataPoint.timestamp > resetDate) {
 						resetDate = beeminderDataPoint.timestamp;
 					}
 					
 					//skip the check after this one as well
 					i++;
+					
+					//if this data point has any "hours" value besides 0,
+					//insert a new data point with that value, and set
+					//this one back to 0
+					if(beeminderDataPoint.hours != 0) {
+						//i is already 1 greater than the reset data
+						//point's index
+						beeminderDataPoints.add(i, new DataPoint(beeminderDataPoint.timestamp,
+									beeminderDataPoint.hours));
+						beeminderDataPoint.hours = 0;
+						beeminderDataPoint.toBeUpdated = true;
+					}
 				} else {
 					beeminderDataPoint.checkMerge(beeminderDataPoints.get(i - 1));
 				}
@@ -190,8 +205,10 @@ public class BeeminderGraphData {
 		while(i1 < beeminderDataPoints.size() && i2 < actualDataPoints.size()) {
 			beeminderDataPoint = beeminderDataPoints.get(i1);
 			
-			//skip data points already marked as "to be removed"
-			if(beeminderDataPoint.isToBeRemoved()) {
+			//skip data points already marked as "to be removed," and
+			//data points representing the graph being reset
+			if(beeminderDataPoint.isToBeRemoved()
+						|| RESET_STRINGS.contains(beeminderDataPoint.comment)) {
 				i1++;
 				continue;
 			}
@@ -210,7 +227,6 @@ public class BeeminderGraphData {
 				
 				i1++;
 				i2++;
-				//System.out.println(beeminderDataPoint.timestamp + "=a");
 			}
 
 			//if the Beeminder data point comes before the actual data
@@ -219,7 +235,6 @@ public class BeeminderGraphData {
 			else if(beeminderDataPoint.timestamp < actualDataPoint.timestamp) {
 				beeminderDataPoint.toBeRemoved = true;
 				i1++;
-				//System.out.println(beeminderDataPoint.timestamp + "<a");
 			}
 
 			//if the actual data point comes first, then it needs to be
@@ -231,11 +246,9 @@ public class BeeminderGraphData {
 				//this produces a match
 				i1++;
 				i2++;
-				//System.out.println(beeminderDataPoint.timestamp + ">a");
 			} else {
 				//skip all pre-reset data points
 				i2++;
-				//System.out.println(actualDataPoint.timestamp + "<reset");
 			}
 		}
 		
@@ -245,9 +258,8 @@ public class BeeminderGraphData {
 			beeminderDataPoint = beeminderDataPoints.get(i1);
 			
 			//do not remove "reset" data points
-			if(beeminderDataPoint.comment != RESET_STRING) {
+			if(!RESET_STRINGS.contains(beeminderDataPoint.comment)) {
 				beeminderDataPoints.get(i1).toBeRemoved = true;
-				//System.out.println("unmatched b");
 			}
 		}
 		
@@ -257,7 +269,6 @@ public class BeeminderGraphData {
 			actualDataPoint = actualDataPoints.get(i2);
 			if(actualDataPoint.timestamp >= resetDate) {
 				beeminderDataPoints.add(actualDataPoints.get(i2));
-				//System.out.println("unmatched a");
 			}
 		}
 		
