@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Joseph Cloutier, Daniel Reeves, Bethany Soule
+ * Copyright 2011-2012 Joseph Cloutier
  * 
  * This file is part of TagTime.
  * 
@@ -40,7 +40,7 @@ import org.quartz.SchedulerException;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 
-import tagtime.log.BeeminderAPI;
+import tagtime.beeminder.BeeminderAPI;
 import tagtime.log.Log;
 import tagtime.ping.PingJob;
 import tagtime.quartz.RandomizedScheduleBuilder;

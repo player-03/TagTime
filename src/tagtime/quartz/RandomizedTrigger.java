@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Joseph Cloutier, Daniel Reeves, Bethany Soule
+ * Copyright 2011-2012 Joseph Cloutier
  * 
  * This file is part of TagTime.
  * 

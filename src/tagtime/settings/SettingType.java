@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Joseph Cloutier, Daniel Reeves, Bethany Soule
+ * Copyright 2011-2012 Joseph Cloutier
  * 
  * This file is part of TagTime.
  * 
@@ -86,7 +86,7 @@ public enum SettingType {
 	 * <p>
 	 * For example, if a user with username alice had the entry
 	 * <code>work|job work</code>, all pings including at least one of
-	 * "job" or "work" would be sent to beta.beeminder.com/alice/work.
+	 * "job" or "work" would be sent to www.beeminder.com/alice/work.
 	 * </p>
 	 * <p>
 	 * Additionally, if any tag is preceded by a - sign, that tag must
@@ -115,11 +115,20 @@ public enum SettingType {
 	BEEMINDER_GRAPHS(List.class, null),
 
 	/**
-	 * The base url to send data to. Use "http://beta.beeminder.com" to
-	 * submit to beeminder, or use something like "http://localhost:3000"
-	 * for local testing.
+	 * The base url to send data to. You should probably not modify this,
+	 * at least not until a new API version is released (and then only if
+	 * it's backwards-compatible). Note that this URL should not end with
+	 * a slash.
 	 */
-	SUBMISSION_URL(String.class, "http://beta.beeminder.com"),
+	@Deprecated
+	SUBMISSION_URL(String.class, "https://www.beeminder.com/api/v1"),
+
+	/**
+	 * Your personal authentication token. Log in to your account, then
+	 * visit https://www.beeminder.com/api/v1/auth_token.json to find it.
+	 * Without this, TagTime will be unable to submit data.
+	 */
+	AUTH_TOKEN(String.class, null),
 
 	/**
 	 * The number of digits of precision to use when submitting time in
@@ -133,7 +142,9 @@ public enum SettingType {
 	 * overwriting any previous data. Otherwise, only new data will be
 	 * submitted. The latter is more efficient, so it is recommended you
 	 * set this to true only if you manually edit your log file.
+	 * @deprecated Beeminder no longer supports overwriting all data.
 	 */
+	@Deprecated
 	OVERWRITE_ALL_DATA(Boolean.class, false),
 
 	/**
