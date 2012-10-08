@@ -115,15 +115,6 @@ public enum SettingType {
 	BEEMINDER_GRAPHS(List.class, null),
 
 	/**
-	 * The base url to send data to. You should probably not modify this,
-	 * at least not until a new API version is released (and then only if
-	 * it's backwards-compatible). Note that this URL should not end with
-	 * a slash.
-	 */
-	@Deprecated
-	SUBMISSION_URL(String.class, "https://www.beeminder.com/api/v1"),
-
-	/**
 	 * Your personal authentication token. Log in to your account, then
 	 * visit https://www.beeminder.com/api/v1/auth_token.json to find it.
 	 * Without this, TagTime will be unable to submit data.
@@ -137,15 +128,12 @@ public enum SettingType {
 	PRECISION(int.class, 2),
 
 	/**
-	 * Specifies which behavior is desired when submitting data to
-	 * Beeminder. If this is true, all data will be submitted every time,
-	 * overwriting any previous data. Otherwise, only new data will be
-	 * submitted. The latter is more efficient, so it is recommended you
-	 * set this to true only if you manually edit your log file.
-	 * @deprecated Beeminder no longer supports overwriting all data.
+	 * If this is true, the next time you submit data to Beeminder,
+	 * TagTime will check the data points on Beeminder's server and make
+	 * sure they match your log file. This isn't necessary unless you
+	 * manually update your log file, or you change BEEMINDER_GRAPHS.
 	 */
-	@Deprecated
-	OVERWRITE_ALL_DATA(Boolean.class, false),
+	UPDATE_ALL_DATA(Boolean.class, true),
 
 	/**
 	 * The sound file to play. This file should be located in the sound

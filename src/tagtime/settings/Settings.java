@@ -238,6 +238,12 @@ public class Settings {
 			} catch(NumberFormatException e) {
 				return 0;
 			}
+		} else if(type.valueClass == long.class || type.valueClass == Long.class) {
+			try {
+				return Long.parseLong(data);
+			} catch(NumberFormatException e) {
+				return 0;
+			}
 		} else if(type.valueClass == float.class || type.valueClass == Float.class) {
 			try {
 				return Float.parseFloat(data);
@@ -317,6 +323,13 @@ public class Settings {
 						(Integer) setting.defaultValue);
 	}
 	
+	public long getLongValue(SettingType setting) {
+		assert setting.valueClass == long.class;
+		
+		return properties.getLong(setting.toString(),
+					(Long) setting.defaultValue);
+	}
+	
 	public boolean getBooleanValue(SettingType setting) {
 		assert setting.valueClass == boolean.class;
 		
@@ -360,11 +373,16 @@ public class Settings {
 		properties.setProperty(setting.toString(), value);
 	}
 	
+	/**
+	 * Increments all {@link TagCount}s that match one of the given
+	 * strings. Creates new TagCount objects for each unmatched string.
+	 */
 	public void incrementTagCounts(SettingType setting,
 							List<? extends String> values) {
 		List<TagCount> tagCounts = getTagCounts(setting);
 		
-		//this is inefficient, but I can't think of a better working alternative
+		//this is inefficient, but I can't think of a better working
+		//alternative, and values shouldn't have too many strings anyway
 		for(TagCount tC : tagCounts) {
 			if(values.contains(tC.getTag())) {
 				tC.increment();

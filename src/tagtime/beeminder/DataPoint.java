@@ -1,14 +1,11 @@
 package tagtime.beeminder;
 
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
 import org.apache.http.client.HttpClient;
-
-import tagtime.TagTime;
 
 public class DataPoint {
 	private static final Calendar calendar = new GregorianCalendar();
@@ -69,20 +66,20 @@ public class DataPoint {
 	}
 	
 	/**
-	 * Submits this datapoint's information to Beeminder, if necessary.
+	 * Submits this data point's information to Beeminder, if necessary.
+	 * @param saveID Whether to save the data point's ID as returned by
+	 *            Beeminder. This only applies when creating a new data
+	 *            point.
 	 * @return Whether it is ok to continue submitting data.
 	 */
-	public boolean submit(HttpClient client, TagTime tagTimeInstance,
-				String graphName, NumberFormat hourFormatter) {
+	public boolean submit(HttpClient client, BeeminderGraph graph,
+				boolean saveID) {
 		if(isToBeRemoved()) {
-			return BeeminderAPI.deleteDataPoint(client, tagTimeInstance,
-						graphName, this);
+			return BeeminderAPI.deleteDataPoint(client, graph, this);
 		} else if(isToBeCreated()) {
-			return BeeminderAPI.createDataPoint(client, tagTimeInstance,
-						graphName, this, hourFormatter);
+			return BeeminderAPI.createDataPoint(client, graph, this, saveID);
 		} else if(isToBeUpdated()) {
-			return BeeminderAPI.updateDataPoint(client, tagTimeInstance,
-						graphName, this, hourFormatter);
+			return BeeminderAPI.updateDataPoint(client, graph, this);
 		}
 		
 		return true;

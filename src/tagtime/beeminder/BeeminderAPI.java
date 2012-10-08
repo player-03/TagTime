@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -61,7 +60,7 @@ public class BeeminderAPI {
 	private static final String API_BASE_URL = "https://www.beeminder.com/api/v1";
 	
 	private final Settings userSettings;
-	private final List<BeeminderGraphData> graphData;
+	private final List<BeeminderGraph> graphData;
 	
 	public BeeminderAPI(TagTime tagTimeInstance, Settings userSettings) throws ClassCastException {
 		this.userSettings = userSettings;
@@ -71,9 +70,9 @@ public class BeeminderAPI {
 		Collection<String> graphDataEntries = userSettings
 					.getListValue(SettingType.BEEMINDER_GRAPHS);
 		
-		graphData = new ArrayList<BeeminderGraphData>(graphDataEntries.size());
+		graphData = new ArrayList<BeeminderGraph>(graphDataEntries.size());
 		for(String dataEntry : graphDataEntries) {
-			graphData.add(new BeeminderGraphData(tagTimeInstance, username, dataEntry));
+			graphData.add(new BeeminderGraph(tagTimeInstance, username, dataEntry));
 		}
 	}
 	
@@ -96,7 +95,7 @@ public class BeeminderAPI {
 			e.printStackTrace();
 		}*/
 
-		for(BeeminderGraphData data : graphData) {
+		for(BeeminderGraph data : graphData) {
 			data.submitPings(logFile);
 		}
 	}
@@ -117,6 +116,33 @@ public class BeeminderAPI {
 		}
 		
 		return 0;
+	}
+	
+	/**
+	 * @param id The id of the data point to look up.
+	 * @param timestamp The timestamp to use. Required because Beeminder
+	 *            will not provide it.
+	 */
+	public static DataPoint fetchDataPoint(HttpClient client, String graphName,
+				TagTime tagTimeInstance, String id, long timestamp) {
+		if(id == null || id.length() == 0) {
+			return null;
+		}
+		
+		JSONArray parsedData = runGetRequest(client,
+					getDataPointURL(tagTimeInstance, graphName, id),
+					tagTimeInstance);
+		
+		if(parsedData == null) {
+			return null;
+		}
+		
+		JSONObject jsonDataPoint = (JSONObject) parsedData.get(0);
+		
+		return new DataPoint((String) jsonDataPoint.get("id"),
+					timestamp,
+					(Double) jsonDataPoint.get("value"),
+					(String) jsonDataPoint.get("comment"));
 	}
 	
 	public static List<DataPoint> fetchAllDataPoints(HttpClient client,
@@ -166,49 +192,73 @@ public class BeeminderAPI {
 	
 	/**
 	 * Creates a new data point on Beeminder.
+	 * @param saveID
 	 * @return Whether the request completed successfully. If this is
 	 *         false, then Beeminder is probably inaccessible, and no
 	 *         more requests should be sent for now.
 	 */
-	public static boolean createDataPoint(HttpClient client, TagTime tagTimeInstance,
-				String graphName, DataPoint dataPoint, NumberFormat hourFormatter) {
-		if(runPostRequest(client, tagTimeInstance,
-					getDataURL(tagTimeInstance, graphName),
+	public static boolean createDataPoint(HttpClient client,
+				BeeminderGraph graph, DataPoint dataPoint,
+				boolean saveID) {
+		HttpResponse response = runPostRequest(client, graph.tagTimeInstance,
+					getDataURL(graph.tagTimeInstance, graph.graphName),
 					buildPostData(new String[] {
 								"timestamp", Long.toString(dataPoint.timestamp),
-								"value", hourFormatter.format(dataPoint.hours)}))) {
+								"value", graph.hourFormatter.format(dataPoint.hours)}));
+		
+		if(response != null) {
+			if(saveID) {
+				JSONArray parsedResponse = parseResponse(response);
+				
+				if(parsedResponse.size() > 0) {
+					//TODO: Seriously, there ought to be a simpler and
+					//more type-safe way to get this information.
+					graph.writeToBeeFile((String) ((JSONObject)
+								parsedResponse.get(0)).get("id"),
+								dataPoint.timestamp);
+				}
+			} else {
+				//parseResponse consumes the response, so this only needs
+				//to be called if parseResponse isn't
+				try {
+					EntityUtils.consume(response.getEntity());
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
 			return true;
 		}
 		
 		System.err.println("Unable to submit your data to Beeminder " +
-					"graph " + graphName + ". Please try again later.");
+					"graph " + graph.graphName + ". Please try again later.");
 		return false;
 	}
 	
 	/**
-	 * Creates a new data point on Beeminder.
+	 * Updates an existing data point on Beeminder.
 	 * @return Whether the request completed successfully. If this is
 	 *         false, then Beeminder is probably inaccessible, and no
 	 *         more requests should be sent for now.
 	 */
-	public static boolean updateDataPoint(HttpClient client, TagTime tagTimeInstance,
-				String graphName, DataPoint dataPoint, NumberFormat hourFormatter) {
+	public static boolean updateDataPoint(HttpClient client, BeeminderGraph graph,
+				DataPoint dataPoint) {
 		List<NameValuePair> postData = buildPostData(new String[] {
 					"timestamp", Long.toString(dataPoint.timestamp),
-					"value", hourFormatter.format(dataPoint.hours)});
+					"value", graph.hourFormatter.format(dataPoint.hours)});
 		
 		if(dataPoint.comment.length() > 0) {
 			postData.add(new BasicNameValuePair("comment", dataPoint.comment));
 		}
 		
-		if(runPutRequest(client, tagTimeInstance,
-					getDataPointURL(tagTimeInstance, graphName, dataPoint.id),
+		if(runPutRequest(client, graph.tagTimeInstance,
+					getDataPointURL(graph.tagTimeInstance, graph.graphName, dataPoint.id),
 					postData)) {
 			return true;
 		}
 		
 		System.err.println("Unable to submit your data to Beeminder " +
-					"graph " + graphName + ". Please try again later.");
+					"graph " + graph.graphName + ". Please try again later.");
 		return false;
 	}
 	
@@ -218,15 +268,15 @@ public class BeeminderAPI {
 	 *         false, then Beeminder is probably inaccessible, and no
 	 *         more requests should be sent for now.
 	 */
-	public static boolean deleteDataPoint(HttpClient client, TagTime tagTimeInstance,
-				String graphName, DataPoint dataPoint) {
-		if(runDeleteRequest(client, tagTimeInstance,
-					getDataPointURL(tagTimeInstance, graphName, dataPoint.id))) {
+	public static boolean deleteDataPoint(HttpClient client, BeeminderGraph graph,
+				DataPoint dataPoint) {
+		if(runDeleteRequest(client, graph.tagTimeInstance,
+					getDataPointURL(graph.tagTimeInstance, graph.graphName, dataPoint.id))) {
 			return true;
 		}
 		
 		System.err.println("Unable to submit your data to Beeminder " +
-					"graph " + graphName + ". Please try again later.");
+					"graph " + graph.graphName + ". Please try again later.");
 		return false;
 	}
 	
@@ -305,11 +355,13 @@ public class BeeminderAPI {
 	
 	/**
 	 * Runs a post request.
-	 * @return Whether the request completed successfully. If this is
-	 *         false, then Beeminder is probably inaccessible, and no
-	 *         more requests should be sent for now.
+	 * @return The response if the request completed successfully, or
+	 *         null otherwise. If this is null, then Beeminder is
+	 *         probably inaccessible, and no more requests should be sent
+	 *         for now. Otherwise, make sure to run EntityUtils.consume()
+	 *         on it.
 	 */
-	private static boolean runPostRequest(HttpClient client, TagTime tagTimeInstance,
+	private static HttpResponse runPostRequest(HttpClient client, TagTime tagTimeInstance,
 				String dataURL, List<NameValuePair> postData) {
 		//add the authorization token
 		postData.add(new BasicNameValuePair("auth_token",
@@ -330,7 +382,7 @@ public class BeeminderAPI {
 			response = client.execute(postRequest);
 		} catch(Exception e) {
 			e.printStackTrace();
-			return false;
+			return null;
 		}
 		
 		StatusLine status = response.getStatusLine();
@@ -338,13 +390,7 @@ public class BeeminderAPI {
 		System.out.println("Response: " + status.getStatusCode()
 					+ " " + status.getReasonPhrase());
 		
-		try {
-			EntityUtils.consume(response.getEntity());
-		} catch(IOException e) {
-			e.printStackTrace();
-		}
-		
-		return true;
+		return response;
 	}
 	
 	private static JSONArray runGetRequest(HttpClient client, String url,
@@ -352,7 +398,6 @@ public class BeeminderAPI {
 		HttpGet getRequest = new HttpGet(
 					url + getAuthTokenToAppend(tagTimeInstance));
 		HttpResponse response;
-		OutputStream data;
 		
 		//retrieve the data
 		try {
@@ -369,6 +414,11 @@ public class BeeminderAPI {
 			return null;
 		}
 		
+		return parseResponse(response);
+	}
+	
+	private static JSONArray parseResponse(HttpResponse response) {
+		OutputStream data;
 		try {
 			data = new ByteArrayOutputStream(response.getEntity().getContent().available());
 			response.getEntity().writeTo(data);
@@ -377,8 +427,7 @@ public class BeeminderAPI {
 			return null;
 		}
 		
-		//parse the data (TODO: is it really necessary to use a
-		//full-featured json parser here?)
+		//TODO: is it really necessary to use a full-featured json parser here?
 		Object parseResult;
 		JSONArray parsedArray = null;
 		try {
@@ -396,14 +445,15 @@ public class BeeminderAPI {
 			e.printStackTrace();
 		}
 		
+		//TODO: Is this guaranteed to be redundant?
 		try {
 			EntityUtils.consume(response.getEntity());
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
 		
-		//JSONParser.parse() can return multiple object types
-		//TODO: (Possibly) find a better parser.
+		//JSONParser.parse() can return multiple object types, depending
+		//on the JSON itself
 		if(parseResult instanceof JSONArray) {
 			parsedArray = (JSONArray) parseResult;
 		} else if(parseResult instanceof JSONObject) {
@@ -414,6 +464,7 @@ public class BeeminderAPI {
 			parsedArray.add(parseResult);
 		} else {
 			System.out.println("Unknown result from JSON parser: " + parseResult);
+			parsedArray = new JSONArray();
 		}
 		
 		return parsedArray;

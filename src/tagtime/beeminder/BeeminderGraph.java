@@ -19,7 +19,13 @@
 
 package tagtime.beeminder;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -29,16 +35,16 @@ import java.util.List;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import tagtime.Main;
 import tagtime.TagTime;
 import tagtime.log.LogParser;
 import tagtime.settings.SettingType;
 import tagtime.util.TagMatcher;
 
 /**
- * A set of data for a single Beeminder graph. This class handles the
- * actual parsing and submission of data.
+ * Information about and functions related to a single Beeminder graph.
  */
-public class BeeminderGraphData {
+public class BeeminderGraph {
 	private static final List<String> RESET_STRINGS =
 				Arrays.asList(new String[] {"Reset today", "Unfroze today"});
 	
@@ -46,7 +52,7 @@ public class BeeminderGraphData {
 	 * Submit time spent as hours, rounded to the given number of decimal
 	 * places.
 	 */
-	private final DecimalFormat hourFormatter;
+	public final DecimalFormat hourFormatter;
 	
 	/**
 	 * 10 ^ (the number of decimal places being used)
@@ -73,7 +79,7 @@ public class BeeminderGraphData {
 	 * @param dataEntry The data entry for the current graph. This must
 	 *            be in the format "graphName|tags".
 	 */
-	public BeeminderGraphData(TagTime tagTimeInstance, String username, String dataEntry) {
+	public BeeminderGraph(TagTime tagTimeInstance, String username, String dataEntry) {
 		if(username == null || dataEntry == null) {
 			throw new IllegalArgumentException("Both parameters to the " +
 						"BeeminderGraphData constructor must be defined.");
@@ -122,20 +128,49 @@ public class BeeminderGraphData {
 	
 	/**
 	 * Submits all matching pings from the given file that have not yet
-	 * been submitted. Currently, it estimates the time by assuming the
-	 * user spent all their time between two pings on the activity
-	 * recorded by the second ping.
+	 * been submitted. If SettingType.UPDATE_ALL_DATA is true, also
+	 * updates the data points that already exist on the server.
 	 * @param logFile A reference to the log file to read from.
 	 */
 	public void submitPings(File logFile) {
 		HttpClient client = new DefaultHttpClient();
 		
 		DataPoint beeminderDataPoint;
-		List<DataPoint> beeminderDataPoints = BeeminderAPI.fetchAllDataPoints(client,
-											graphName, tagTimeInstance);
+		List<DataPoint> beeminderDataPoints = null;
+		
+		//if not updating all data points, retrieve only the latest
+		//one (this will set the value of "resetDate" such that only
+		//changes after this data point are sent to Beeminder)
+		if(!tagTimeInstance.settings.getBooleanValue(SettingType.UPDATE_ALL_DATA)) {
+			beeminderDataPoint = getDataPointFromBeeFile(client);
+			
+			if(beeminderDataPoint != null) {
+				beeminderDataPoints = new ArrayList<DataPoint>(1);
+				beeminderDataPoints.add(beeminderDataPoint);
+			}
+		} else {
+			tagTimeInstance.settings.setValue(SettingType.UPDATE_ALL_DATA, false);
+		}
+		
+		//if updating all data points, retrieve them now (and if the
+		//latest point couldn't be fetched, act as if UPDATE_ALL_DATA had
+		//been true)
 		if(beeminderDataPoints == null) {
-			client.getConnectionManager().shutdown();
-			return;
+			beeminderDataPoints = BeeminderAPI.fetchAllDataPoints(client,
+						graphName, tagTimeInstance);
+			
+			if(beeminderDataPoints == null) {
+				//an error message has (probably) already been printed
+				client.getConnectionManager().shutdown();
+				tagTimeInstance.settings.setValue(SettingType.UPDATE_ALL_DATA, true);
+				return;
+			}
+			
+			//store the final data point's data
+			if(beeminderDataPoints.size() > 0) {
+				writeToBeeFile(beeminderDataPoints.get(
+							beeminderDataPoints.size() - 1));
+			}
 		}
 		
 		long resetDate = Math.max(beeminderDataPoints.get(0).timestamp,
@@ -144,38 +179,35 @@ public class BeeminderGraphData {
 		resetDate = DataPoint.getStartOfDay(resetDate);
 		
 		//check the Beeminder list for data points that fall on the same
-		//day, and mark those data points as needing to be merged (the
-		//first point gets marked as needing to be removed, and the
-		//second gets marked as needing to be updated)
-		if(beeminderDataPoints.size() > 1) {
-			for(int i = 1; i < beeminderDataPoints.size(); i++) {
-				beeminderDataPoint = beeminderDataPoints.get(i);
-				
-				//Special case: each time the graph is reset, Beeminder
-				//adds a "Reset today" data point. Do not remove these,
-				//and use them to set the reset date if necessary.
-				if(RESET_STRINGS.contains(beeminderDataPoint.comment)) {
-					if(beeminderDataPoint.timestamp > resetDate) {
-						resetDate = beeminderDataPoint.timestamp;
-					}
-					
-					//skip the check after this one as well
-					i++;
-					
-					//if this data point has any "hours" value besides 0,
-					//insert a new data point with that value, and set
-					//this one back to 0
-					if(beeminderDataPoint.hours != 0) {
-						//i is already 1 greater than the reset data
-						//point's index
-						beeminderDataPoints.add(i, new DataPoint(beeminderDataPoint.timestamp,
-									beeminderDataPoint.hours));
-						beeminderDataPoint.hours = 0;
-						beeminderDataPoint.toBeUpdated = true;
-					}
-				} else {
-					beeminderDataPoint.checkMerge(beeminderDataPoints.get(i - 1));
+		//day, and merge them (the first point gets marked as needing to
+		//be removed, and the second gets marked as needing to be updated)
+		for(int i = 1; i < beeminderDataPoints.size(); i++) {
+			beeminderDataPoint = beeminderDataPoints.get(i);
+			
+			//Special case: each time the graph is reset, Beeminder
+			//adds a "Reset today" data point. Do not remove these,
+			//and use them to set the reset date if necessary.
+			if(RESET_STRINGS.contains(beeminderDataPoint.comment)) {
+				if(beeminderDataPoint.timestamp > resetDate) {
+					resetDate = beeminderDataPoint.timestamp;
 				}
+				
+				//skip the check after this one as well
+				i++;
+				
+				//if this data point has any "hours" value besides 0,
+				//insert a new data point with that value, and set
+				//this one back to 0
+				if(beeminderDataPoint.hours != 0) {
+					//i is already 1 greater than the reset data
+					//point's index
+					beeminderDataPoints.add(i, new DataPoint(beeminderDataPoint.timestamp,
+								beeminderDataPoint.hours));
+					beeminderDataPoint.hours = 0;
+					beeminderDataPoint.toBeUpdated = true;
+				}
+			} else {
+				beeminderDataPoint.checkMerge(beeminderDataPoints.get(i - 1));
 			}
 		}
 		
@@ -197,8 +229,7 @@ public class BeeminderGraphData {
 		 * (Note that both lists are already sorted by timestamp.)
 		 */
 
-		//skipping the first Beeminder data point
-		int i1 = 1, i2 = 0;
+		int i1 = 0, i2 = 0;
 		
 		//first part of the merge: compare data points from the two lists
 		//until one list runs out
@@ -252,12 +283,11 @@ public class BeeminderGraphData {
 			}
 		}
 		
-		//second part of the merge: remove unmatched Beeminder data
-		//points, except for the first
-		for(i1 = i1 == 0 ? 1 : i1; i1 < beeminderDataPoints.size(); i1++) {
+		//second part of the merge: remove unmatched Beeminder data points
+		for(; i1 < beeminderDataPoints.size(); i1++) {
 			beeminderDataPoint = beeminderDataPoints.get(i1);
 			
-			//do not remove "reset" data points
+			//never remove "reset" data points
 			if(!RESET_STRINGS.contains(beeminderDataPoint.comment)) {
 				beeminderDataPoints.get(i1).toBeRemoved = true;
 			}
@@ -268,21 +298,89 @@ public class BeeminderGraphData {
 		for(; i2 < actualDataPoints.size(); i2++) {
 			actualDataPoint = actualDataPoints.get(i2);
 			if(actualDataPoint.timestamp >= resetDate) {
-				beeminderDataPoints.add(actualDataPoints.get(i2));
+				beeminderDataPoints.add(actualDataPoint);
 			}
 		}
 		
 		//submit the changes to all data points in the merged list
-		for(DataPoint p : beeminderDataPoints) {
-			if(!p.submit(client, tagTimeInstance, graphName, hourFormatter)) {
+		final int numDataPoints = beeminderDataPoints.size();
+		for(int i = 0; i < numDataPoints; i++) {
+			beeminderDataPoint = beeminderDataPoints.get(i);
+			if(!beeminderDataPoint.submit(client, this,
+						//save the last data point's id, if it is new
+						i == numDataPoints - 1)) {
+				tagTimeInstance.settings.setValue(SettingType.UPDATE_ALL_DATA, true);
 				break;
 			}
 		}
 		
 		client.getConnectionManager().shutdown();
+		
+		System.out.println("Done submitting.");
 	}
 	
 	private boolean roundedValuesEqual(double time1, double time2) {
 		return Math.round(time1 * roundingMultiplier) == Math.round(time2 * roundingMultiplier);
+	}
+	
+	private void writeToBeeFile(DataPoint dataPoint) {
+		writeToBeeFile(dataPoint.id, dataPoint.timestamp);
+	}
+	
+	public void writeToBeeFile(String id, long timestamp) {
+		BufferedWriter fileWriter;
+		
+		try {
+			fileWriter = new BufferedWriter(new FileWriter(
+						Main.getDataDirectory().getPath() + "/"
+									+ tagTimeInstance.username + "_"
+									+ graphName + ".bee"));
+		} catch(IOException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		try {
+			fileWriter.append(id + " " + timestamp);
+			fileWriter.flush();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			fileWriter.close();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private DataPoint getDataPointFromBeeFile(HttpClient client) {
+		String fileContents;
+		
+		try {
+			BufferedReader fileReader = new BufferedReader(new FileReader(
+							Main.getDataDirectory().getPath() + "/"
+										+ tagTimeInstance.username + "_"
+										+ graphName + ".bee"));
+			fileContents = fileReader.readLine();
+			fileReader.close();
+		} catch(FileNotFoundException e) {
+			e.printStackTrace();
+			return null;
+		} catch(IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+		
+		int spaceIndex = fileContents.indexOf(' ');
+		if(spaceIndex == -1) {
+			return null;
+		}
+		
+		String id = fileContents.substring(0, spaceIndex);
+		long timestamp = Long.parseLong(fileContents.substring(spaceIndex + 1));
+		
+		return BeeminderAPI.fetchDataPoint(client, graphName,
+					tagTimeInstance, id, timestamp);
 	}
 }
