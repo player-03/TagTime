@@ -215,7 +215,8 @@ public class BeeminderAPI {
 					//more type-safe way to get this information.
 					graph.writeToBeeFile((String) ((JSONObject)
 								parsedResponse.get(0)).get("id"),
-								dataPoint.timestamp);
+								dataPoint.timestamp, dataPoint.hours,
+								dataPoint.comment);
 				}
 			} else {
 				//parseResponse consumes the response, so this only needs

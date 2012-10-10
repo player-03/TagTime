@@ -31,6 +31,8 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -142,7 +144,7 @@ public class BeeminderGraph {
 		//one (this will set the value of "resetDate" such that only
 		//changes after this data point are sent to Beeminder)
 		if(!tagTimeInstance.settings.getBooleanValue(SettingType.UPDATE_ALL_DATA)) {
-			beeminderDataPoint = getDataPointFromBeeFile(client);
+			beeminderDataPoint = getDataPointFromBeeFile();
 			
 			if(beeminderDataPoint != null) {
 				beeminderDataPoints = new ArrayList<DataPoint>(1);
@@ -316,7 +318,7 @@ public class BeeminderGraph {
 		
 		client.getConnectionManager().shutdown();
 		
-		System.out.println("Done submitting.");
+		System.out.println("Done submitting to your " + graphName + " graph.");
 	}
 	
 	private boolean roundedValuesEqual(double time1, double time2) {
@@ -324,10 +326,15 @@ public class BeeminderGraph {
 	}
 	
 	private void writeToBeeFile(DataPoint dataPoint) {
-		writeToBeeFile(dataPoint.id, dataPoint.timestamp);
+		writeToBeeFile(dataPoint.id, dataPoint.timestamp, dataPoint.hours, dataPoint.comment);
 	}
 	
-	public void writeToBeeFile(String id, long timestamp) {
+	public void writeToBeeFile(String id, long timestamp, double hours,
+				String comment) {
+		if(id == null) {
+			throw new IllegalArgumentException("id cannot be null!");
+		}
+		
 		BufferedWriter fileWriter;
 		
 		try {
@@ -341,7 +348,8 @@ public class BeeminderGraph {
 		}
 		
 		try {
-			fileWriter.append(id + " " + timestamp);
+			fileWriter.append(id + " " + timestamp + " " + hourFormatter.format(hours)
+						+ " " + comment);
 			fileWriter.flush();
 		} catch(IOException e) {
 			e.printStackTrace();
@@ -354,7 +362,10 @@ public class BeeminderGraph {
 		}
 	}
 	
-	private DataPoint getDataPointFromBeeFile(HttpClient client) {
+	private static final Pattern BEE_FILE_PATTERN = Pattern.compile("(\\w+) "
+				+ "(\\d+) (\\d+(?:\\.\\d+)) (.*)");
+	
+	private DataPoint getDataPointFromBeeFile() {
 		String fileContents;
 		
 		try {
@@ -372,15 +383,16 @@ public class BeeminderGraph {
 			return null;
 		}
 		
-		int spaceIndex = fileContents.indexOf(' ');
-		if(spaceIndex == -1) {
+		Matcher matcher = BEE_FILE_PATTERN.matcher(fileContents);
+		if(!matcher.matches()) {
 			return null;
 		}
 		
-		String id = fileContents.substring(0, spaceIndex);
-		long timestamp = Long.parseLong(fileContents.substring(spaceIndex + 1));
+		String id = matcher.group(1);
+		long timestamp = Long.parseLong(matcher.group(2));
+		double hours = Double.parseDouble(matcher.group(3));
+		String comment = matcher.group(4);
 		
-		return BeeminderAPI.fetchDataPoint(client, graphName,
-					tagTimeInstance, id, timestamp);
+		return new DataPoint(id, timestamp, hours, comment);
 	}
 }
