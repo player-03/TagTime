@@ -38,8 +38,8 @@ import tagtime.util.BackwardsAccessFile;
  * reached, the data can be submitted later.
  */
 public class Log {
-	private static final Pattern lineParser = Pattern.compile(
-				"^(\\d+) (\\w+(?: [\\w]+)*) +\\[", Pattern.MULTILINE);
+	private static final Pattern LINE_PARSER = Pattern.compile(
+				"^(\\d+) (\\w+(?: [\\w]+)*) +\\[");
 	
 	public final TagTime tagTimeInstance;
 	
@@ -90,7 +90,10 @@ public class Log {
 		
 		if(timestampInSeconds > lastTimestamp) {
 			lastTimestamp = timestampInSeconds;
-			lastTags = data;
+			
+			if(data.indexOf(" RETRO ") == -1) {
+				lastTags = data;
+			}
 		} else {
 			//special case: check if this ping goes immediately before
 			//the final line of the file
@@ -191,11 +194,14 @@ public class Log {
 				return;
 			}
 			
-			Matcher lineMatcher = lineParser.matcher(lastLine);
+			Matcher lineMatcher = LINE_PARSER.matcher(lastLine);
 			
-			if(lineMatcher.matches()) {
+			if(lineMatcher.find()) {
 				lastTimestamp = Long.parseLong(lineMatcher.group(1));
 				lastTags = lineMatcher.group(2);
+				if(lastTags.indexOf(" RETRO ") != -1) {
+					lastTags = null;
+				}
 			}
 		} catch(Exception e) {}
 	}

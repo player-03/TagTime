@@ -166,8 +166,7 @@ public class TagTime {
 			trayIcon = new TrayIcon(Main.getIconImage(), "TagTime (" + username + ")", popupMenu);
 		} else {
 			throw new ExceptionInInitializerError("System tray not supported; TagTime " +
-						"(currently) requires a system tray icon to function.");
-			//TODO: Implement an alternative to the system tray.
+						"requires a system tray icon to function.");
 		}
 	}
 	
@@ -187,7 +186,7 @@ public class TagTime {
 			System.err.println("Could not register the system tray " +
 							"icon for " + username + ".");
 			
-			//cancel
+			//No TagTime for you!
 			return;
 		}
 		
