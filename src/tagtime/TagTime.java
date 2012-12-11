@@ -125,7 +125,7 @@ public class TagTime {
 		//create a system tray icon
 		if(SystemTray.isSupported()) {
 			//the settings menu item
-			ActionListener settingsListener = new ActionListener() {
+			/*ActionListener settingsListener = new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					System.out.println("Settings manager not implemented; sorry. " +
@@ -134,8 +134,8 @@ public class TagTime {
 				}
 			};
 			MenuItem settingsMenuItem = new MenuItem("Settings", new MenuShortcut(KeyEvent.VK_S));
-			settingsMenuItem.addActionListener(settingsListener);
-			
+			settingsMenuItem.addActionListener(settingsListener);*/
+
 			//the "submit now" menu item
 			ActionListener submitListener = new ActionListener() {
 				@Override
@@ -158,7 +158,7 @@ public class TagTime {
 			
 			//create and populate the icon's popup menu
 			PopupMenu popupMenu = new PopupMenu();
-			popupMenu.add(settingsMenuItem);
+			//popupMenu.add(settingsMenuItem);
 			popupMenu.add(submitMenuItem);
 			popupMenu.add(quitMenuItem);
 			
