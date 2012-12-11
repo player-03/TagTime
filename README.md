@@ -4,11 +4,10 @@ For more on the idea behind this project, see [messymatters.com/tagtime](http://
 
 # Usage:
 
-0. Clone the repository on Github or download and extract the zip file at http://www.mediafire.com/download.php?ndaaq5p3r6z7u45 (the latter is easier, but it may not always be up to date). Do not move the files around relative to one another, though feel free to move the directory they're in.
-1. Before running the app, open usernames.txt and replace "yourusernamehere" with your Beeminder username.
-2. Assuming you have Java installed, run the app by double-clicking TagTime.jar.
-3. If you want to change your settings, exit the app by right-clicking the icon in the system tray. Find your settings file in the newly-created data folder. Update your settings (see SettingType.java for documentation), and start the app again when you're done. For the record, I do plan to make this easier, but don't hold your breath.
-4. Answer the pings! (Always answer with what it caught you at right at that moment.)
+0. Clone the repository on Github or download and extract the [essential files](http://www.mediafire.com/download.php?ndaaq5p3r6z7u45). Do not move the files around relative to one another, though feel free to move the directory they're in.
+1. Assuming you have Java installed, run the app by double-clicking TagTime.jar. Enter your Beeminder username, or make up a name if you don't plan to get a Beeminder account.
+2. If you want to change your settings, exit the app by right-clicking the icon in the system tray. Find your settings file in the newly-created data folder. Update your settings (see SettingType.java for documentation), and start the app again when you're done. For the record, I do plan to make this easier, but don't hold your breath.
+3. Answer the pings! (Always answer with what it caught you at right at that moment.)
 
 # Credits:
 
