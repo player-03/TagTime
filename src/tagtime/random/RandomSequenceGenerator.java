@@ -34,8 +34,10 @@ import org.apache.commons.codec.binary.Base64;
 /**
  * <p>
  * A pseudo-random number generator that produces values by encrypting
- * numeric values. For example, it calculates the second value in the
- * sequence by encrypting the number 1, and
+ * numeric values. For example, it calculates the first value in the
+ * sequence by encrypting the number 0, and the second value by
+ * encrypting the number 1. This allows TagTime to iterate over the
+ * sequence in either direction.
  * </p>
  * <p>
  * It is unknown whether the numbers generated satisfy statistical tests
@@ -64,11 +66,15 @@ public class RandomSequenceGenerator {
 	 * numbers across multiple executions or generators.
 	 * @param keyString The encryption key to use. No safety checking is
 	 *            performed, and weak keys will be accepted. If this is
-	 *            null, an automatically-generated key will be used
-	 *            instead.
-	 * @throws NoSuchAlgorithmException
-	 * @throws NoSuchPaddingException
-	 * @throws InvalidKeyException
+	 *            null or empty, an automatically-generated key will be
+	 *            used instead.
+	 * @throws NoSuchAlgorithmException If Java has dropped support for
+	 *             AES (not likely).
+	 * @throws NoSuchPaddingException If Java has dropped support for AES
+	 *             (not likely).
+	 * @throws InvalidKeyException If the user modifies their RNG_KEY
+	 *             setting to a value that cannot be used as an AES key.
+	 *             This may or may not be possible (untested).
 	 */
 	public RandomSequenceGenerator(String keyString) throws NoSuchAlgorithmException,
 				NoSuchPaddingException, InvalidKeyException {

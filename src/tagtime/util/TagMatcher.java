@@ -1,8 +1,27 @@
+/*
+ * Copyright 2012 Joseph Cloutier
+ * 
+ * This file is part of TagTime.
+ * 
+ * TagTime is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ * 
+ * TagTime is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with TagTime. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package tagtime.util;
 
 import java.util.Collection;
 
-public class TagMatcher {
+public class TagMatcher implements ITagMatcher {
 	/**
 	 * The tags that are accepted. At least one of these must be present
 	 * for a given set of tags to be accepted. Exception: if this list is
@@ -21,6 +40,7 @@ public class TagMatcher {
 		this.tagsToReject = tagsToReject;
 	}
 	
+	@Override
 	public boolean matchesTags(Iterable<String> tags) {
 		//the tags are accepted by default if no matches are required
 		//(the tag group just has to be checked for rejected tags)
