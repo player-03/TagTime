@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import tagtime.Main;
 import tagtime.TagTime;
@@ -36,11 +38,15 @@ import tagtime.util.BackwardsAccessFile;
  * reached, the data can be submitted later.
  */
 public class Log {
+	private static final Pattern lineParser = Pattern.compile(
+				"^(\\d+) (\\w+(?: [\\w]+)*) +\\[", Pattern.MULTILINE);
+	
 	public final TagTime tagTimeInstance;
 	
 	private final BackwardsAccessFile logFile;
 	
 	private long lastTimestamp = -1;
+	private String lastTags = null;
 	
 	public Log(TagTime tagTimeInstance) throws IOException {
 		this.tagTimeInstance = tagTimeInstance;
@@ -51,7 +57,7 @@ public class Log {
 		//this will create the file if necessary
 		logFile = new BackwardsAccessFile(filePath, "rw");
 		
-		findLastTimestamp();
+		findLastEntry();
 	}
 	
 	/**
@@ -84,6 +90,7 @@ public class Log {
 		
 		if(timestampInSeconds > lastTimestamp) {
 			lastTimestamp = timestampInSeconds;
+			lastTags = data;
 		} else {
 			//special case: check if this ping goes immediately before
 			//the final line of the file
@@ -175,17 +182,21 @@ public class Log {
 		}
 	}
 	
-	private void findLastTimestamp() {
+	private void findLastEntry() {
 		try {
 			//get the final line with a digit on it
-			String timestamp = logFile.readLastLine("0123456789");
+			String lastLine = logFile.readLastLine("0123456789");
 			
-			if(timestamp == null) {
+			if(lastLine == null) {
 				return;
 			}
 			
-			timestamp = timestamp.substring(0, timestamp.indexOf(' '));
-			lastTimestamp = Long.parseLong(timestamp);
+			Matcher lineMatcher = lineParser.matcher(lastLine);
+			
+			if(lineMatcher.matches()) {
+				lastTimestamp = Long.parseLong(lineMatcher.group(1));
+				lastTags = lineMatcher.group(2);
+			}
 		} catch(Exception e) {}
 	}
 	
@@ -195,6 +206,10 @@ public class Log {
 	 */
 	public long getLastTimestamp() {
 		return lastTimestamp;
+	}
+	
+	public String getLastTags() {
+		return lastTags;
 	}
 	
 	/**
