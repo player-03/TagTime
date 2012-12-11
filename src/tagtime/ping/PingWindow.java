@@ -104,10 +104,21 @@ public class PingWindow extends JFrame implements ActionListener {
 		submitButton.setActionCommand(SUBMIT);
 		submitButton.addActionListener(this);
 		
+		//get the last tags submitted
+		String ditto = tagTimeInstance.log.getLastTags();
+		if(ditto == null || ditto.length() == 0 || ditto.indexOf(' ') == 0) {
+			ditto = null;
+		}
+		
 		//convert the given list of TagCount objects to a list of strings
-		String[] cachedTags = new String[tagCounts.size()];
-		for(int i = cachedTags.length - 1; i >= 0; i--) {
-			cachedTags[i] = tagCounts.get(i).getTag();
+		String[] cachedTags = new String[tagCounts.size() + (ditto != null ? 1 : 0)];
+		for(int i = tagCounts.size() - 1; i >= 0; i--) {
+			cachedTags[i + (ditto != null ? 1 : 0)] = tagCounts.get(i).getTag();
+		}
+		
+		//add the "ditto" tags in front of the list if appropriate
+		if(ditto != null) {
+			cachedTags[0] = ditto;
 		}
 		
 		Dimension windowSize = new Dimension(
@@ -164,7 +175,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		JLabel label = new JLabel("<html>It's tag time! " +
 							"What are you doing <i>right now</i>?</html>");
 		
-		//place the components
+		/*** place the components ***/
 		
 		//the label goes across the top
 		resetConstraints(constraints);
