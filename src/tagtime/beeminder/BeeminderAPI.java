@@ -51,9 +51,10 @@ import tagtime.settings.SettingType;
 import tagtime.settings.Settings;
 
 /**
- * TODO: Refactor some methods from BeeminderGraphData into this, and
- * vice versa. Currently, the class names don't particularly correspond
- * to what they're responsible for.
+ * Contains static methods for sending/retrieving information to/from
+ * Beeminder, used by the BeeminderGraph class. Instances of this class
+ * manage a user's BeeminderGraph objects. <br>
+ * TODO: Refactor one of these two responsibilities into a new class.
  */
 public class BeeminderAPI {
 	private static final JSONParser JSON_PARSER = new JSONParser();
@@ -77,8 +78,7 @@ public class BeeminderAPI {
 	}
 	
 	/**
-	 * Submits the current user's data to each registered graph.<br>
-	 * TODO: Refactor this into a different class.
+	 * Submits the current user's data to each registered graph.
 	 */
 	public void submit() {
 		String username = userSettings.username;
@@ -86,15 +86,6 @@ public class BeeminderAPI {
 		File logFile = new File(Main.getDataDirectory().getPath()
 					+ "/" + username + ".log");
 		
-		/*BufferedWriter beeFile = null;
-		try {
-			beeFile = new BufferedWriter(new FileWriter(
-						new File(Main.getDataDirectory().getName()
-									+ "/" + username + ".bee")));
-		} catch(IOException e) {
-			e.printStackTrace();
-		}*/
-
 		for(BeeminderGraph data : graphData) {
 			data.submitPings(logFile);
 		}
@@ -102,7 +93,7 @@ public class BeeminderAPI {
 	
 	public static long fetchResetDate(HttpClient client,
 				String graphName, TagTime tagTimeInstance) {
-		JSONArray parsedArray = runGetRequest(client,
+		List<JSONObject> parsedArray = runGetRequest(client,
 					getGraphURL(tagTimeInstance, graphName),
 					tagTimeInstance);
 		if(parsedArray == null) {
@@ -110,7 +101,7 @@ public class BeeminderAPI {
 		}
 		
 		//Unless the API is updated, the request will return one object.
-		JSONObject data = (JSONObject) parsedArray.get(0);
+		JSONObject data = parsedArray.get(0);
 		if(data.containsKey("reset")) {
 			return (Long) data.get("reset");
 		}
@@ -119,9 +110,9 @@ public class BeeminderAPI {
 	}
 	
 	/**
-	 * @param id The id of the data point to look up.
+	 * @param id The id of the data point to retrieve.
 	 * @param timestamp The timestamp to use. Required because Beeminder
-	 *            will not provide it.
+	 *            will not provide it, unlike when fetching all points.
 	 */
 	public static DataPoint fetchDataPoint(HttpClient client, String graphName,
 				TagTime tagTimeInstance, String id, long timestamp) {
@@ -129,7 +120,7 @@ public class BeeminderAPI {
 			return null;
 		}
 		
-		JSONArray parsedData = runGetRequest(client,
+		List<JSONObject> parsedData = runGetRequest(client,
 					getDataPointURL(tagTimeInstance, graphName, id),
 					tagTimeInstance);
 		
@@ -137,7 +128,7 @@ public class BeeminderAPI {
 			return null;
 		}
 		
-		JSONObject jsonDataPoint = (JSONObject) parsedData.get(0);
+		JSONObject jsonDataPoint = parsedData.get(0);
 		
 		return new DataPoint((String) jsonDataPoint.get("id"),
 					timestamp,
@@ -147,7 +138,7 @@ public class BeeminderAPI {
 	
 	public static List<DataPoint> fetchAllDataPoints(HttpClient client,
 				String graphName, TagTime tagTimeInstance) {
-		JSONArray parsedData = runGetRequest(client,
+		List<JSONObject> parsedData = runGetRequest(client,
 					getDataURL(tagTimeInstance, graphName),
 					tagTimeInstance);
 		if(parsedData == null) {
@@ -208,13 +199,10 @@ public class BeeminderAPI {
 		
 		if(response != null) {
 			if(saveID) {
-				JSONArray parsedResponse = parseResponse(response);
+				List<JSONObject> parsedResponse = parseResponse(response);
 				
 				if(parsedResponse.size() > 0) {
-					//TODO: Seriously, there ought to be a simpler and
-					//more type-safe way to get this information.
-					graph.writeToBeeFile((String) ((JSONObject)
-								parsedResponse.get(0)).get("id"),
+					graph.writeToBeeFile((String) parsedResponse.get(0).get("id"),
 								dataPoint.timestamp, dataPoint.hours,
 								dataPoint.comment);
 				}
@@ -394,7 +382,7 @@ public class BeeminderAPI {
 		return response;
 	}
 	
-	private static JSONArray runGetRequest(HttpClient client, String url,
+	private static List<JSONObject> runGetRequest(HttpClient client, String url,
 				TagTime tagTimeInstance) {
 		HttpGet getRequest = new HttpGet(
 					url + getAuthTokenToAppend(tagTimeInstance));
@@ -418,7 +406,7 @@ public class BeeminderAPI {
 		return parseResponse(response);
 	}
 	
-	private static JSONArray parseResponse(HttpResponse response) {
+	private static List<JSONObject> parseResponse(HttpResponse response) {
 		OutputStream data;
 		try {
 			data = new ByteArrayOutputStream(response.getEntity().getContent().available());
@@ -428,9 +416,7 @@ public class BeeminderAPI {
 			return null;
 		}
 		
-		//TODO: is it really necessary to use a full-featured json parser here?
 		Object parseResult;
-		JSONArray parsedArray = null;
 		try {
 			parseResult = JSON_PARSER.parse(data.toString());
 		} catch(ParseException e) {
@@ -446,7 +432,8 @@ public class BeeminderAPI {
 			e.printStackTrace();
 		}
 		
-		//TODO: Is this guaranteed to be redundant?
+		//This might be redundant, but leave it even so, in case the HTTP
+		//library changes.
 		try {
 			EntityUtils.consume(response.getEntity());
 		} catch(IOException e) {
@@ -455,17 +442,24 @@ public class BeeminderAPI {
 		
 		//JSONParser.parse() can return multiple object types, depending
 		//on the JSON itself
+		List<JSONObject> parsedArray = null;
 		if(parseResult instanceof JSONArray) {
-			parsedArray = (JSONArray) parseResult;
+			parsedArray = new ArrayList<JSONObject>();
+			for(Object element : (JSONArray) parseResult) {
+				if(element instanceof JSONObject) {
+					parsedArray.add((JSONObject) element);
+				} else {
+					//Currently, it's safe to ignore any sub-arrays.
+					//(Sorry if this messes things up in the future.)
+				}
+			}
 		} else if(parseResult instanceof JSONObject) {
-			parsedArray = new JSONArray();
+			parsedArray = new ArrayList<JSONObject>(1);
 			
-			//How am I even supposed to fix this warning without changing
-			//the JSONArray source code?
-			parsedArray.add(parseResult);
+			parsedArray.add((JSONObject) parseResult);
 		} else {
 			System.out.println("Unknown result from JSON parser: " + parseResult);
-			parsedArray = new JSONArray();
+			parsedArray = new ArrayList<JSONObject>();
 		}
 		
 		return parsedArray;
