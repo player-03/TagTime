@@ -22,15 +22,18 @@ package tagtime;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
+import tagtime.gui.UsernameInputWindow;
+
 public class Main {
-	private static final Pattern BEEMINDER_USERNAME_MATCHER = Pattern.compile("[a-z0-9]+");
+	public static final Pattern BEEMINDER_USERNAME_MATCHER = Pattern.compile("[a-z0-9]+");
 	
 	private static File dataDirectory;
 	private static File soundDirectory;
@@ -76,8 +79,6 @@ public class Main {
 								usernameReader.readLine()) {
 						usernames.add(username);
 					}
-				} catch(FileNotFoundException e) {
-					e.printStackTrace();
 				} catch(IOException e) {
 					e.printStackTrace();
 				}
@@ -90,25 +91,28 @@ public class Main {
 			}
 		}
 		
-		if(usernames != null) {
+		if(usernames != null && usernames.size() > 0) {
 			//if for any reason multiple people want to use TagTime on
 			//the same device at once, they can (though it would most
 			//likely be more trouble than it's worth)
+			//known bug: killing one instance causes the other's tray icon
+			//to become unresponsive (it throws an error when you try to
+			//access the menu)
 			for(String username : usernames) {
 				runTagTime(username);
 			}
 		} else {
-			//TODO: open a window and ask for their username
-			runTagTime("default_user");
+			runTagTime(null);
 		}
 	}
 	
 	/**
 	 * Creates and runs a new TagTime instance for the given user.
 	 */
-	private static void runTagTime(String username) {
+	public static void runTagTime(String username) {
 		if(username == null
 					|| !BEEMINDER_USERNAME_MATCHER.matcher(username).matches()) {
+			new UsernameInputWindow().setVisible(true);
 			return;
 		}
 		
@@ -117,6 +121,33 @@ public class Main {
 			instance.start();
 		} catch(IOException e) {
 			System.err.println("Unable to run TagTime for " + username + ".");
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Adds the given username to the usernames.txt file.
+	 */
+	public static void registerUsername(String username) {
+		//attempt to load the "usernames.txt" file
+		File usernameFile = new File("./usernames.txt");
+		
+		if(!usernameFile.exists()) {
+			try {
+				usernameFile.createNewFile();
+			} catch(IOException e) {
+				e.printStackTrace();
+				return;
+			}
+		}
+		
+		try {
+			BufferedWriter usernameWriter = new BufferedWriter(
+						new FileWriter(usernameFile));
+			usernameWriter.append(username);
+			usernameWriter.newLine();
+			usernameWriter.close();
+		} catch(IOException e) {
 			e.printStackTrace();
 		}
 	}
