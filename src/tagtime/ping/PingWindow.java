@@ -106,7 +106,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		
 		//get the last tags submitted
 		String ditto = tagTimeInstance.log.getLastTags();
-		if(ditto == null || ditto.length() == 0 || ditto.indexOf(' ') == 0) {
+		if(ditto != null && (ditto.length() == 0 || ditto.indexOf(' ') == -1)) {
 			ditto = null;
 		}
 		
