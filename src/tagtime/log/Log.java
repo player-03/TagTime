@@ -91,7 +91,7 @@ public class Log {
 		if(timestampInSeconds > lastTimestamp) {
 			lastTimestamp = timestampInSeconds;
 			
-			if(data.indexOf(" RETRO ") == -1) {
+			if(data.indexOf(" RETRO") == -1) {
 				lastTags = data;
 			}
 		} else {
