@@ -157,7 +157,7 @@ public enum SettingType {
 	 */
 	public final Object defaultValue;
 	
-	SettingType(Class<?> valueClass, Object defaultValue) {
+	<T> SettingType(Class<T> valueClass, T defaultValue) {
 		this.valueClass = valueClass;
 		
 		//defaultValue must be null or an instance of the given type
