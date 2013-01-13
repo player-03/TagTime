@@ -160,9 +160,6 @@ public enum SettingType {
 	<T> SettingType(Class<T> valueClass, T defaultValue) {
 		this.valueClass = valueClass;
 		
-		//defaultValue must be null or an instance of the given type
-		assert defaultValue == null || valueClass.isInstance(defaultValue);
-		
 		this.defaultValue = defaultValue;
 	}
 }
