@@ -166,6 +166,10 @@ public class LogParser {
 			previousPingTime = currentPingTime;
 		}
 		
+		try {
+			logFileIn.close();
+		} catch(IOException e) {}
+		
 		return timePerDay;
 	}
 }

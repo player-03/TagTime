@@ -72,7 +72,7 @@ public class PingWindow extends JFrame implements ActionListener {
 	private static final Insets ZERO_INSETS = new Insets(0, 0, 0, 0);
 	
 	final JTextArea inputText;
-	final JList quickTags;
+	final JList<String> quickTags;
 	
 	private PingJob ownerJob;
 	
@@ -126,7 +126,7 @@ public class PingWindow extends JFrame implements ActionListener {
 					tagTimeInstance.settings.getIntValue(SettingType.WINDOW_HEIGHT));
 		
 		//set up the list of previously-submitted tags
-		quickTags = new JList(cachedTags);
+		quickTags = new JList<String>(cachedTags);
 		quickTags.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		quickTags.addMouseListener(new MouseAdapter() {
 			@Override

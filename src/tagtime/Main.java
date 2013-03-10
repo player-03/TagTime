@@ -79,6 +79,8 @@ public class Main {
 								usernameReader.readLine()) {
 						usernames.add(username);
 					}
+					
+					usernameReader.close();
 				} catch(IOException e) {
 					e.printStackTrace();
 				}

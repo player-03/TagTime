@@ -20,6 +20,7 @@
 package tagtime.log;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
@@ -43,7 +44,8 @@ public class Log {
 	
 	public final TagTime tagTimeInstance;
 	
-	private final BackwardsAccessFile logFile;
+	private final File logFileLocation;
+	private BackwardsAccessFile logFile;
 	
 	private long lastTimestamp = -1;
 	private String lastTags = null;
@@ -51,11 +53,8 @@ public class Log {
 	public Log(TagTime tagTimeInstance) throws IOException {
 		this.tagTimeInstance = tagTimeInstance;
 		
-		File filePath = new File(Main.getDataDirectory().getPath() + "/" +
+		logFileLocation = new File(Main.getDataDirectory().getPath() + "/" +
 					tagTimeInstance.settings.username + ".log");
-		
-		//this will create the file if necessary
-		logFile = new BackwardsAccessFile(filePath, "rw");
 		
 		findLastEntry();
 	}
@@ -71,6 +70,16 @@ public class Log {
 	 *            data, but it does not need to include a timestamp.
 	 */
 	public synchronized void log(long timestamp, String data) {
+		boolean leaveFileOpen = logFile != null;
+		if(logFile == null) {
+			try {
+				logFile = new BackwardsAccessFile(logFileLocation, "rw");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				return;
+			}
+		}
+		
 		//convert to Unix time (that is, use seconds, not milliseconds)
 		long timestampInSeconds = timestamp / 1000;
 		
@@ -183,27 +192,46 @@ public class Log {
 			System.err.println(annotatedData);
 			e.printStackTrace();
 		}
+		
+		if(!leaveFileOpen) {
+			try {
+				logFile.close();
+				logFile = null;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	private void findLastEntry() {
 		try {
+			logFile = new BackwardsAccessFile(logFileLocation, "rw");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		try {
 			//get the final line with a digit on it
 			String lastLine = logFile.readLastLine("0123456789");
 			
-			if(lastLine == null) {
-				return;
-			}
-			
-			Matcher lineMatcher = LINE_PARSER.matcher(lastLine);
-			
-			if(lineMatcher.find()) {
-				lastTimestamp = Long.parseLong(lineMatcher.group(1));
-				lastTags = lineMatcher.group(2);
-				if(lastTags.indexOf(" RETRO ") != -1) {
-					lastTags = null;
+			if(lastLine != null) {
+				Matcher lineMatcher = LINE_PARSER.matcher(lastLine);
+				
+				if(lineMatcher.find()) {
+					lastTimestamp = Long.parseLong(lineMatcher.group(1));
+					lastTags = lineMatcher.group(2);
+					if(lastTags.indexOf(" RETRO") == lastTags.length() - 6) {
+						lastTags = null;
+					}
 				}
 			}
 		} catch(Exception e) {}
+		
+		try {
+			logFile.close();
+			logFile = null;
+		} catch(IOException e) {}
 	}
 	
 	/**
@@ -226,7 +254,14 @@ public class Log {
 	 * @param until The time at which to stop logging missed pings.
 	 */
 	public void logMissedPings(String extraTags, long until) {
-		//determine the string to mark missed pings with
+		try {
+			logFile = new BackwardsAccessFile(logFileLocation, "rw");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		//the string used to mark missed pings
 		String tags = "afk";
 		
 		if(extraTags != null && !extraTags.equals("")) {
@@ -245,6 +280,13 @@ public class Log {
 						trigger.getFireTimeAfter(ping, true)) {
 				logRetro(ping.getTime(), tags);
 			}
+		}
+		
+		try {
+			logFile.close();
+			logFile = null;
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
