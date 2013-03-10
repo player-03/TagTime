@@ -93,7 +93,8 @@ public class BeeminderAPI {
 	
 	public static long fetchResetDate(HttpClient client,
 				String graphName, TagTime tagTimeInstance) {
-		List<JSONObject> parsedArray = runGetRequest(client,
+		//this functionality is not implemented and may never be
+		/*List<JSONObject> parsedArray = runGetRequest(client,
 					getGraphURL(tagTimeInstance, graphName),
 					tagTimeInstance);
 		if(parsedArray == null) {
@@ -104,7 +105,7 @@ public class BeeminderAPI {
 		JSONObject data = parsedArray.get(0);
 		if(data.containsKey("reset")) {
 			return (Long) data.get("reset");
-		}
+		}*/
 		
 		return 0;
 	}
@@ -484,10 +485,11 @@ public class BeeminderAPI {
 		return postData;
 	}
 	
-	private static String getGraphURL(TagTime tagTimeInstance, String graphName) {
+	//unused
+	/*private static String getGraphURL(TagTime tagTimeInstance, String graphName) {
 		return API_BASE_URL + "/users/" + tagTimeInstance.username
 					+ "/goals/" + graphName + ".json";
-	}
+	}*/
 	
 	private static String getDataURL(TagTime tagTimeInstance, String graphName) {
 		return API_BASE_URL + "/users/" + tagTimeInstance.username

@@ -139,6 +139,9 @@ public class BeeminderGraph {
 		
 		DataPoint beeminderDataPoint;
 		List<DataPoint> beeminderDataPoints = null;
+
+		long resetDate = BeeminderAPI.fetchResetDate(client, graphName,
+								tagTimeInstance);
 		
 		//if not updating all data points, retrieve only the latest
 		//one (this will set the value of "resetDate" such that only
@@ -149,6 +152,7 @@ public class BeeminderGraph {
 			if(beeminderDataPoint != null) {
 				beeminderDataPoints = new ArrayList<DataPoint>(1);
 				beeminderDataPoints.add(beeminderDataPoint);
+				resetDate = beeminderDataPoint.timestamp;
 			}
 		} else {
 			tagTimeInstance.settings.setValue(SettingType.UPDATE_ALL_DATA, false);
@@ -175,9 +179,6 @@ public class BeeminderGraph {
 			}
 		}
 		
-		long resetDate = Math.max(beeminderDataPoints.get(0).timestamp,
-					BeeminderAPI.fetchResetDate(client, graphName,
-								tagTimeInstance));
 		resetDate = DataPoint.getStartOfDay(resetDate);
 		
 		//check the Beeminder list for data points that fall on the same
