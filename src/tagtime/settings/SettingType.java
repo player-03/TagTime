@@ -111,6 +111,14 @@ public enum SettingType {
 	 * "job" would be submitted to both the "work" graph and the "nafk"
 	 * graph.
 	 * </p>
+	 * <p>
+	 * To specify data for multiple graphs, separate each entry with a
+	 * comma. To include all three previously-given examples, the entry
+	 * in your properties file would look like this:
+	 * </p>
+	 * <p>
+	 * BEEMINDER_GRAPHS = work|job work,computeridle|afk retro -off,nafk|-afk
+	 * </p>
 	 */
 	BEEMINDER_GRAPHS(List.class, null),
 
