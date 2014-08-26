@@ -1,31 +1,32 @@
 package tagtime.ping;
 
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.Dimension;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JRootPane;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.ListSelectionModel;
+import javax.swing.SwingWorker;
+import javax.swing.JScrollPane;
+import javax.swing.JProgressBar;
+import javax.swing.BorderFactory;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-public class FakePing extends JFrame
+public class FakePing extends JFrame implements PropertyChangeListener
 {
 	private static final long serialVersionUID = 1489389636896999991L;
 	final JTextArea inputText;
+	JProgressBar ticker;
+	private final int MAX_SEC = 59;
 
 	public FakePing()
 	{
@@ -55,7 +56,7 @@ public class FakePing extends JFrame
 		}
 		
 		//convert the given list of TagCount objects to a list of strings
-		String[] cachedTags = {"bornify", "live", "die"};
+		String[] cachedTags = {"will be born", "living", "died"};
 		
 		Dimension windowSize = new Dimension( 350, 400 );
 		
@@ -96,15 +97,30 @@ public class FakePing extends JFrame
 		inputTextScrollPane.setMaximumSize(inputTextDimension);
 		inputTextScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		
+		// time left
+		ticker = new JProgressBar( 0, MAX_SEC ); // min max seconds
+		ticker.setValue( 0 );
+		Task timeLeft = new Task();
+		timeLeft.addPropertyChangeListener(this);
+		timeLeft.execute();
+
 		//create the heading text
 		JLabel label = new JLabel("<html>It's tag time! " +
 							"What are you doing <i>right now</i>?</html>");
 		
 		/*** place the components ***/
+
+		// progress bar to warn afk or slow user
+		resetConstraints(constraints);
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridwidth = GRID_WIDTH;
+		constraints.insets = new Insets(2, 0, 0, 2);
+		root.add(ticker, constraints);
 		
 		//the label goes across the top
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridy = 1; // FIX, wasn't in original because it was the top
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.insets = new Insets(0, 0, 8, 0);
 		root.add(label, constraints);
@@ -113,7 +129,7 @@ public class FakePing extends JFrame
 		//and is the only one with vertical weight
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.BOTH;
-		constraints.gridy = 1;
+		constraints.gridy = 2;
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.weighty = 1;
 		constraints.insets = new Insets(0, 0, 3, 0);
@@ -122,7 +138,7 @@ public class FakePing extends JFrame
 		//the input text goes below the list
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.BOTH;
-		constraints.gridy = 2;
+		constraints.gridy = 3;
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.insets = new Insets(0, 0, 5, 0);
 		root.add(inputTextScrollPane, constraints);
@@ -130,14 +146,14 @@ public class FakePing extends JFrame
 		//the cancel button goes in the bottom right
 		resetConstraints(constraints);
 		constraints.gridx = GRID_WIDTH - 1;
-		constraints.gridy = 3;
+		constraints.gridy = 4;
 		constraints.weightx = 0;
 		root.add(cancelButton, constraints);
 		
 		//the submit button goes next to the cancel button
 		resetConstraints(constraints);
 		constraints.gridx = GRID_WIDTH - 2;
-		constraints.gridy = 3;
+		constraints.gridy = 4;
 		constraints.weightx = 0;
 		constraints.insets = new Insets(0, 0, 0, 8);
 		root.add(submitButton, constraints);
@@ -145,7 +161,7 @@ public class FakePing extends JFrame
 		//an invisible box goes next to the submit and cancel buttons,
 		//to push them to the side
 		resetConstraints(constraints);
-		constraints.gridy = 3;
+		constraints.gridy = 4;
 		root.add(Box.createRigidArea(new Dimension(3, 3)), constraints);
 		
 		setSize(windowSize);
@@ -158,11 +174,9 @@ public class FakePing extends JFrame
 		
 		//clean up when closed
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-
 	}
 	
 	private void resetConstraints(GridBagConstraints constraints) {
-		final Insets ZERO_INSETS = new Insets(0, 0, 0, 0);
 		constraints.gridx = 0;
 		constraints.gridy = 0;
 		constraints.gridwidth = 1;
@@ -171,6 +185,41 @@ public class FakePing extends JFrame
 		constraints.weighty = 0;
 		constraints.fill = GridBagConstraints.NONE;
 		constraints.anchor = GridBagConstraints.EAST;
-		constraints.insets = ZERO_INSETS;
+		constraints.insets = new Insets(0, 0, 0, 0);
+	}
+
+	public void propertyChange(PropertyChangeEvent evt) {
+	   if ("progress" == evt.getPropertyName()) {
+		   int progress = (Integer) evt.getNewValue();
+		   ticker.setValue(progress);
+	   }
+	}
+
+	class Task extends SwingWorker<Void, Void> {
+
+		@Override
+        public Void doInBackground() {
+        	int progress = 0;
+            //Initialize progress property.
+            setProgress(0);
+            while (progress < MAX_SEC) {
+            	//Sleep for up to one second.
+            	try {
+                	Thread.sleep(1000);
+                } catch (InterruptedException anotherShowedUp) {
+                	Thread.yield( );
+                }
+            	progress += 1;
+            	setProgress(progress);
+            }
+            return null;
+		}
+
+		// Executed in event dispatching thread
+		@Override
+		public void done() {
+			ticker.setValue( MAX_SEC );
+			// Just a warning, not a nanny. Others will close the frame.
+		}
 	}
 }
