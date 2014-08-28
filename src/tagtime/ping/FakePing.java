@@ -56,7 +56,7 @@ public class FakePing extends JFrame implements PropertyChangeListener
 		}
 		
 		//convert the given list of TagCount objects to a list of strings
-		String[] cachedTags = {"will be born", "living", "died"};
+		String[] cachedTags = {"will be born", "am living", "died"};
 		
 		Dimension windowSize = new Dimension( 350, 400 );
 		
@@ -120,7 +120,7 @@ public class FakePing extends JFrame implements PropertyChangeListener
 		//the label goes across the top
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridy = 1; // FIX, wasn't in original because it was the top
+		constraints.gridy = 1;
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.insets = new Insets(0, 0, 8, 0);
 		root.add(label, constraints);
@@ -195,7 +195,7 @@ public class FakePing extends JFrame implements PropertyChangeListener
 	   }
 	}
 
-	class Task extends SwingWorker<Void, Void> {
+	private class Task extends SwingWorker<Void, Void> {
 
 		@Override
         public Void doInBackground() {
