@@ -30,7 +30,7 @@ public enum SettingType {
 	/**
 	 * The average gap between pings, in minutes.
 	 */
-	AVERAGE_GAP(int.class, 45),
+	AVERAGE_GAP(int.class, 30),
 
 	/**
 	 * The length of time, in seconds, that ping windows will wait before
