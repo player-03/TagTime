@@ -18,3 +18,5 @@ This implementation uses libraries licensed under the [Apache License 2.0](http:
 This is pretty great software. I much appreciate that player_03 ported this from perl. But, perhaps I can fill in some functionality that _I_ fancy. It seems that this version totally relies on beeminder to provide views. I'd rather process & see it here.
 
 Now with a progress bar to show the time left.
+
+![tagtime with progressbar](https://farm3.staticflickr.com/2946/15429286301_f711c33b6d_o_d.jpg)
