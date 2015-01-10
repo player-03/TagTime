@@ -33,6 +33,8 @@ import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -48,6 +50,8 @@ import javax.swing.JList;
 import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
+import javax.swing.JProgressBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -60,7 +64,7 @@ import tagtime.util.TagCount;
 /**
  * The popup window displayed for each ping.
  */
-public class PingWindow extends JFrame implements ActionListener {
+public class PingWindow extends JFrame implements ActionListener, PropertyChangeListener {
 	private static final long serialVersionUID = 1489384636886031541L;
 	
 	public final TagTime tagTimeInstance;
@@ -73,6 +77,7 @@ public class PingWindow extends JFrame implements ActionListener {
 	
 	final JTextArea inputText;
 	final JList<String> quickTags;
+	JProgressBar ticker;
 	
 	private PingJob ownerJob;
 	
@@ -171,15 +176,30 @@ public class PingWindow extends JFrame implements ActionListener {
 		inputTextScrollPane.setMaximumSize(inputTextDimension);
 		inputTextScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		
+		// time left
+		ticker = new JProgressBar( 0, tagTimeInstance.settings.getIntValue(SettingType.WINDOW_TIMEOUT) );
+		ticker.setValue( 0 );
+		Task timeLeft = new Task();
+		timeLeft.addPropertyChangeListener(this);
+		timeLeft.execute();
+		
 		//create the heading text
 		JLabel label = new JLabel("<html>It's tag time! " +
 							"What are you doing <i>right now</i>?</html>");
 		
 		/*** place the components ***/
+
+		// progress bar to warn afk or slow user
+		resetConstraints(constraints);
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridwidth = GRID_WIDTH;
+		constraints.insets = new Insets(2, 0, 0, 2);
+		root.add(ticker, constraints);
 		
 		//the label goes across the top
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridy = 1;
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.insets = new Insets(0, 0, 8, 0);
 		root.add(label, constraints);
@@ -188,7 +208,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		//and is the only one with vertical weight
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.BOTH;
-		constraints.gridy = 1;
+		constraints.gridy = 2;
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.weighty = 1;
 		constraints.insets = new Insets(0, 0, 3, 0);
@@ -197,7 +217,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		//the input text goes below the list
 		resetConstraints(constraints);
 		constraints.fill = GridBagConstraints.BOTH;
-		constraints.gridy = 2;
+		constraints.gridy = 3;
 		constraints.gridwidth = GRID_WIDTH;
 		constraints.insets = new Insets(0, 0, 5, 0);
 		root.add(inputTextScrollPane, constraints);
@@ -205,14 +225,14 @@ public class PingWindow extends JFrame implements ActionListener {
 		//the cancel button goes in the bottom right
 		resetConstraints(constraints);
 		constraints.gridx = GRID_WIDTH - 1;
-		constraints.gridy = 3;
+		constraints.gridy = 4;
 		constraints.weightx = 0;
 		root.add(cancelButton, constraints);
 		
 		//the submit button goes next to the cancel button
 		resetConstraints(constraints);
 		constraints.gridx = GRID_WIDTH - 2;
-		constraints.gridy = 3;
+		constraints.gridy = 4;
 		constraints.weightx = 0;
 		constraints.insets = new Insets(0, 0, 0, 8);
 		root.add(submitButton, constraints);
@@ -220,7 +240,7 @@ public class PingWindow extends JFrame implements ActionListener {
 		//an invisible box goes next to the submit and cancel buttons,
 		//to push them to the side
 		resetConstraints(constraints);
-		constraints.gridy = 3;
+		constraints.gridy = 4;
 		root.add(Box.createRigidArea(new Dimension(3, 3)), constraints);
 		
 		setSize(windowSize);
@@ -363,6 +383,42 @@ public class PingWindow extends JFrame implements ActionListener {
 			}
 			
 			inputText.append(selectedValue.toString());
+		}
+	}
+
+	public void propertyChange(PropertyChangeEvent evt) {
+	   if ("progress" == evt.getPropertyName()) {
+		   int progress = (Integer) evt.getNewValue();
+		   ticker.setValue(progress);
+	   }
+	}
+
+	private class Task extends SwingWorker<Void, Void> {
+    	int max = tagTimeInstance.settings.getIntValue(SettingType.WINDOW_TIMEOUT);
+
+		@Override
+        public Void doInBackground() {
+        	int progress = 0;
+            //Initialize progress property.
+            setProgress(0);
+            while (progress < max) {
+            	//Sleep for up to one second.
+            	try {
+                	Thread.sleep(1000);
+                } catch (InterruptedException anotherShowedUp) {
+                	Thread.yield( );
+                }
+            	progress += 1;
+            	setProgress(progress);
+            }
+            return null;
+		}
+
+		// Executed in event dispatching thread
+		@Override
+		public void done() {
+			ticker.setValue( max );
+			// Just a warning, not a nanny. Others will close the frame.
 		}
 	}
 }

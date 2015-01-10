@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Created-By: 1.7.0_06 (Oracle Corporation)
+Rsrc-Class-Path: ./ commons-configuration-1.7.jar commons-lang-2.6.jar
+  commons-collections-3.2.1.jar httpcore-4.1.2.jar httpclient-4.1.2.ja
+ r slf4j-api-1.6.1.jar json-simple-1.1.1.jar commons-codec-1.5.jar slf
+ 4j-log4j12-1.6.1.jar quartz-all-2.1.0.jar jta-1.1.jar c3p0-0.9.1.1.ja
+ r commons-logging-1.1.1.jar log4j-1.2.14.jar
+Class-Path: .
+Rsrc-Main-Class: tagtime.Main
+Main-Class: org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader
+Specification-Title: TagTime (Java)
+Implementation-Vendor: Player-03; Nzen
+
