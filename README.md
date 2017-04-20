@@ -4,10 +4,18 @@ For more on the idea behind this project, see [messymatters.com/tagtime](http://
 
 # Usage:
 
-0. Clone the repository on Github or download and extract the [essential files](http://www.mediafire.com/download.php?ndaaq5p3r6z7u45). Do not move the files around relative to one another, though feel free to move the directory they're in.
-1. Assuming you have Java installed, run the app by double-clicking TagTime.jar. Enter your Beeminder username, or make up a name if you don't plan to get a Beeminder account.
-2. If you want to change your settings, exit the app by right-clicking the icon in the system tray. Find your settings file in the newly-created data folder. Update your settings (see SettingType.java for documentation), and start the app again when you're done. For the record, I do plan to make this easier, but don't hold your breath.
-3. Answer the pings! (Always answer with what it caught you at right at that moment.)
+0. Download the [latest release](https://github.com/player-03/TagTime/releases) and extract it somewhere convenient.
+1. Run the app by double-clicking TagTime.jar, or by typing `java TagTime.jar` on the command line.
+2. Enter your Beeminder username, or make up a name if you don't plan to get a Beeminder account.
+3. If you want to change your settings, exit the app by right-clicking the icon in the system tray. Find your settings file in the newly-created data folder. Update your settings (see [SettingType.java](https://github.com/player-03/TagTime/blob/master/src/tagtime/settings/SettingType.java) for documentation), and start the app again when you're done.
+4. Answer the pings! (Always answer with what it caught you at right at that moment.)
+
+Beeminder users will need to update [these two settings](https://github.com/player-03/TagTime/blob/master/src/tagtime/settings/SettingType.java#L77-L130) in particular.
+
+# Differences between this implementation and the original:
+
+- This library uses a different random number generator, so even if you copy the seed, it will ping you at different times.
+- When using this library, you can safely change the ping frequency (AVERAGE_GAP) at any time.
 
 # Credits:
 
